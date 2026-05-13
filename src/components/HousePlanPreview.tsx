@@ -1,0 +1,870 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  ArrowRight, ShoppingBag, CheckCircle2,
+  Upload, Edit3, Sparkles, TrendingDown, Info, MessageSquare, X, ChevronRight
+} from 'lucide-react';
+import { FLOORS, STYLE_TAGS, SCENE_IMAGES } from '../constants';
+import { StyleTag } from '../types';
+
+interface HousePlanPreviewProps {
+  currentLevel: number;
+  setCurrentLevel: (lvl: number) => void;
+  currentStyle: StyleTag;
+  setCurrentStyle: (style: StyleTag) => void;
+  showToast: (msg: string) => void;
+  openModal: (type: any, data?: any) => void;
+}
+
+export default function HousePlanPreview({ 
+  currentLevel, setCurrentLevel, 
+  currentStyle, setCurrentStyle, 
+  showToast, openModal 
+}: HousePlanPreviewProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showDetails, setShowDetails] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [showPlanSummary, setShowPlanSummary] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [showEntryHint, setShowEntryHint] = useState(false);
+  const [hoveredEntry, setHoveredEntry] = useState<'budget' | 'ai' | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const lastScrollTime = useRef(0);
+  const [rubberBand, setRubberBand] = useState<'top' | 'bottom' | null>(null);
+  
+  const currentFloor = FLOORS.find(f => f.level === currentLevel) || FLOORS[3];
+
+  // AI Content Generator
+  const getAIContent = () => {
+    const levelKey = currentLevel <= 3 ? 'F' : currentLevel <= 6 ? 'M' : currentLevel <= 8 ? 'P' : currentLevel <= 9 ? 'S' : 'X';
+    
+    const adviceMap: Record<string, string> = {
+      F: "这档先别追求风格，先把床、灯和基础收纳做好。",
+      M: "这档别急着买装饰，先把沙发、床垫和窗帘做好。",
+      P: "如果预算允许，P 档通常比 M 档更容易做出完整效果。",
+      S: "这一档不要只买贵单品，要把灯光、窗帘和材质一起考虑。",
+      X: "高配不是堆品牌，关键是比例、材质和全屋系统感。"
+    };
+
+    const assessmentMap: Record<string, string> = {
+      F: "适合先控制总预算，把基础居住功能补齐。优先保证床、基础收纳和基础照明，装饰类内容后置。需要注意空间完成度和风格感较弱。",
+      M: "开始从“能住”进入“住得舒服”。预算优先放在沙发、床垫、窗帘和主灯等高频使用项。需要注意风格统一度还没有到完整阶段。",
+      P: "多数家庭比较稳的改善档。开始有完整风格表达，家具、灯光和软装之间不再像单品拼凑。比 M 档更容易落地出效果。",
+      S: "更适合对长期居住质感有要求的家庭。预算花在材质、比例、灯光系统和细节控制上。不建议只单独升级几个贵单品。",
+      X: "接近完整高端生活方式方案。预算主要花在品牌、工艺、稀缺单品和全屋系统感上。追求长期审美和接待场景表现。"
+    };
+
+    const styleStrengths: Record<StyleTag, string[]> = {
+      "现代简约": ["线条清爽容错率高", "后期软装宽容度大", "显大且通透"],
+      "中古风": ["单品气质极强", "木色温润有故事感", "氛围感拉满"],
+      "意式极简": ["比例考究显高级", "材质质感穿透力强", "视觉焦点明确"],
+      "原木风": ["视觉极其解压", "空间亲和力极高", "视觉极其温暖"],
+      "北欧风": ["小户型扩容神器", "实用主义天花板", "色彩搭配灵活"],
+      "轻奢": ["高级质感触手可及", "灯光表现力极佳", "档次感建立迅速"],
+      "干净清爽": ["视觉极其解压", "空间亲和力极高", "视觉通透"],
+      "温暖自然": ["视觉极其温暖", "温馨感拉满", "材质亲和"],
+      "复古有氛围": ["单品气质极强", "木色温润有故事感", "氛围感拉满"],
+      "高级冷静": ["比例考究显高级", "材质质感穿透力强", "视觉焦点明确"]
+    };
+
+    const levelStrengths: Record<string, string[]> = {
+      F: ["极高性价比入住", "核心睡眠有保障", "预算压力极小"],
+      M: ["主空间舒适度质变", "配置均衡无短板", "高频单品耐用"],
+      P: ["风格实现度完整", "灯光层次丰富", "材质显著升级"],
+      S: ["细节颗粒度极高", "全屋高定闭环", "极致感官体验"],
+      X: ["顶级材质统治力", "大师单品入场", "身份感与艺术值"]
+    };
+
+    const levelNeeds: Record<string, string[]> = {
+      F: ["灯光氛围较差", "风格感建立不足", "材质感较均质"],
+      M: ["风格统一度尚可", "细节溢价不明显", "艺术性点缀缺失"],
+      P: ["需要搭配进阶灯控", "材质管理要求高", "色彩平衡需精准"],
+      S: ["维护成本略高", "对灯光调校有要求", "单次升级难度大"],
+      X: ["审美门槛较高", "后期改动余地小", "交付周期相对长"]
+    };
+
+    const styleAdvice: Record<StyleTag, string> = {
+      "现代简约": "强调克制和留白，重点控制材质数量，不要堆装饰。",
+      "中古风": "优先保证沙发、边柜和灯具的品质，避免廉价仿古件。",
+      "意式极简": "要把钱集中在沙发、地毯和主灯上，撑起空旷感。",
+      "原木风": "注意木色统一，木色不一会让空间显得凌乱。",
+      "北欧风": "避免做成廉价样板间，用少量高质量软装拉升质感。",
+      "轻奢": "不要堆金色线条，高级感来自石材和灯光的自然映射。",
+      "干净清爽": "强调克制和留白，重点控制材质数量，不要堆装饰。",
+      "温暖自然": "强调家的温馨感，选用柔和的色调和亲肤的材质。",
+      "复古有氛围": "注重氛围灯光的运用，加入有年代感的装饰单品。",
+      "高级冷静": "保持色调的纯净，用材质的对比来丰富空间的层次感。"
+    };
+
+    return {
+      title: "AI 点评这套",
+      subtitle: `${currentFloor.model} · ${currentFloor.budget} · ${currentStyle}`,
+      dixiange: adviceMap[levelKey],
+      assessment: assessmentMap[levelKey] + " " + styleAdvice[currentStyle],
+      strengths: [...levelStrengths[levelKey], ...styleStrengths[currentStyle]].slice(0, 3),
+      needs: levelNeeds[levelKey],
+      add: currentLevel < 5 ? ['主沙发材质', '主卧床垫', '全屋窗帘'] : ['氛围感水墨挂画', '大师级单品', '全案智能灯控'],
+      sub: ['装饰品摆件', '部分地毯', '次卧软装包']
+    };
+  };
+
+  const aiContent = getAIContent();
+
+  // Mutual exclusion: Opening one closes others
+  const togglePanel = (target: 'details' | 'ai' | 'plan') => {
+    if (target === 'details') {
+      setShowDetails(!showDetails);
+      setShowAI(false);
+      setShowPlanSummary(false);
+    } else if (target === 'ai') {
+      setShowAI(!showAI);
+      setShowDetails(false);
+      setShowPlanSummary(false);
+    } else if (target === 'plan') {
+      setShowPlanSummary(!showPlanSummary);
+      setShowDetails(false);
+      setShowAI(false);
+    }
+  };
+
+  // Logic for budget allocation display
+  const budgetAllocation = currentLevel <= 3 ? [
+    { label: '核心活动家具', value: 75, color: '#00B6AD', desc: '沙发、基础睡眠、餐桌椅' },
+    { label: '灯饰照明', value: 10, color: '#60A5FA', desc: '全屋主照明灯具' },
+    { label: '窗帘软装', value: 10, color: '#818CF8', desc: '全屋基础遮光窗帘套组' },
+    { label: '装饰挂画', value: 5, color: '#9CA3AF', desc: '基础点缀装饰' },
+  ] : currentLevel <= 7 ? [
+    { label: '核心活动家具', value: 60, color: '#00B6AD', desc: '高频家具升舱，强化舒适度' },
+    { label: '灯光与窗帘', value: 25, color: '#60A5FA', desc: '开始影响空间氛围与遮蔽感' },
+    { label: '软装统一度', value: 10, color: '#818CF8', desc: '摆脱单品拼凑，风格化初显' },
+    { label: '地毯床品', value: 5, color: '#A78BFA', desc: '触感层面的细节补足' },
+  ] : [
+    { label: '设计与材质', value: 45, color: '#00B6AD', desc: '为设计溢价、进口材料及工艺买单' },
+    { label: '全场景灯光', value: 20, color: '#60A5FA', desc: '实现多场景智能灯光联动' },
+    { label: '高定软装', value: 20, color: '#818CF8', desc: '材质深度交互与私属定制' },
+    { label: '收藏品/硬核软装', value: 15, color: '#A78BFA', desc: '提升空间艺术颗粒度' },
+  ];
+
+  // AI Evaluation Logic
+  useEffect(() => {
+    if (showAI) {
+      setIsEvaluating(true);
+      const timer = setTimeout(() => setIsEvaluating(false), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [currentLevel, currentStyle, showAI]);
+
+  // Handle return state to show plan summary
+  useEffect(() => {
+    if (location.state?.showPlan) {
+      setShowPlanSummary(true);
+      // Clear the state to avoid showing it again on refresh
+      navigate(location.pathname, { replace: true, state: { ...location.state, showPlan: false } });
+    }
+  }, [location.state, navigate, location.pathname]);
+
+  // Show entry hint on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setShowEntryHint(true), 1500);
+    const hideTimer = setTimeout(() => setShowEntryHint(false), 5000);
+    return () => { clearTimeout(timer); clearTimeout(hideTimer); };
+  }, []);
+
+  const handleLevelChange = (newLevel: number) => {
+    if (newLevel >= 1 && newLevel <= 10) {
+      setCurrentLevel(newLevel);
+    }
+  };
+
+  const triggerRubberBand = (dir: 'top' | 'bottom') => {
+    setRubberBand(dir);
+    setTimeout(() => setRubberBand(null), 300);
+  };
+
+  const goToLevelProducts = (level: number) => {
+    // Navigate with state to allow returning
+    navigate(`/products?level=${level}`, { 
+      state: { 
+        returnLevel: currentLevel, 
+        returnStyle: currentStyle,
+        fromPreview: true 
+      } 
+    });
+    showToast(`正在进入：${FLOORS.find(f => f.level === level)?.model} 方案完整清单`);
+  };
+
+  // Close panels on Esc key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowDetails(false);
+        setShowAI(false);
+        setShowPlanSummary(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
+  // Scroll Interaction
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (!isHovered) return;
+
+      // Always prevent default when hovered to block page scroll
+      e.preventDefault();
+      
+      const now = Date.now();
+      if (now - lastScrollTime.current < 800) return;
+
+      const atFirst = currentLevel === 1;
+      const atLast = currentLevel === 10;
+
+      if (e.deltaY > 20) {
+        if (atLast) {
+          triggerRubberBand('bottom');
+        } else {
+          handleLevelChange(currentLevel + 1);
+        }
+        lastScrollTime.current = now;
+      } else if (e.deltaY < -20) {
+        if (atFirst) {
+          triggerRubberBand('top');
+        } else {
+          handleLevelChange(currentLevel - 1);
+        }
+        lastScrollTime.current = now;
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [currentLevel, isHovered]);
+
+  return (
+    <div 
+      className="relative w-full h-full flex flex-col items-center justify-center bg-black overflow-hidden"
+    >
+      {/* Background Ambience */}
+      <AnimatePresence mode="wait">
+        <motion.div 
+          key={currentStyle + currentLevel}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.15 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.5 }}
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat blur-[100px] scale-110 pointer-events-none"
+          style={{ backgroundImage: `url("${SCENE_IMAGES[currentStyle][currentLevel].image}")` }}
+        />
+      </AnimatePresence>
+
+      {/* Main Cinematic Viewport - Clicking here closes panels */}
+      <motion.div 
+        animate={
+          rubberBand === 'top' ? { y: 20 } : rubberBand === 'bottom' ? { y: -20 } : { y: 0 }
+        }
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        className="relative z-10 w-full h-full max-w-[90vw] max-h-[85vh] flex items-center justify-center pointer-events-none"
+      >
+        <div 
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onClick={() => { setShowDetails(false); setShowAI(false); }}
+          className="relative w-full h-full rounded-[48px] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)] border border-white/10 pointer-events-auto cursor-default"
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={currentLevel + currentStyle}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: `url("${SCENE_IMAGES[currentStyle][currentLevel].image}")` }}
+            >
+              {/* Depth Overlays */}
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-transparent to-transparent pointer-events-none" />
+              <div className="absolute inset-0 scale-[1.02] hover:scale-100 transition-transform duration-[4s]" />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.div>
+
+      {/* Floating UI Layers */}
+      
+      {/* Central Floating Meta */}
+      <motion.div 
+        key={currentLevel + currentStyle + 'meta'}
+        initial={{ opacity: 0, x: -30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute bottom-20 left-20 z-50 pointer-events-auto"
+      >
+        <div className="flex flex-col gap-4">
+           <div className="flex items-center gap-6">
+              <h2 className="text-[64px] font-medium tracking-tighter leading-none">{currentFloor.model}</h2>
+              <div className="h-10 w-px bg-white/20" />
+              <div className="flex flex-col">
+                 <span className="text-[20px] font-medium text-white/80">{currentFloor.budget}</span>
+                 <span className="text-[12px] font-medium text-white/40 uppercase tracking-[0.2em]">{currentFloor.name}</span>
+              </div>
+           </div>
+           
+           <div className="flex items-center gap-4">
+              <motion.div 
+                animate={{ 
+                  y: (showDetails || showAI) ? 120 : 0,
+                  opacity: (showDetails || showAI) ? 0.2 : 1,
+                  scale: (showDetails || showAI) ? 0.9 : 1
+                }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="flex items-center gap-4"
+              >
+                  <button 
+                    onClick={() => togglePanel('plan')}
+                    className="px-8 h-12 bg-white text-black rounded-full text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center gap-2"
+                  >
+                    查看方案 <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <div className="relative group/per">
+                    <button 
+                      onClick={() => openModal('matchIntro')}
+                      className="px-8 h-12 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full text-[14px] font-bold hover:bg-white/20 transition-all"
+                    >
+                      AI 帮我看
+                    </button>
+                    <div className="absolute top-[-44px] left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/80 backdrop-blur-md rounded-lg text-[10px] text-white/60 whitespace-nowrap opacity-0 group-hover/per:opacity-100 transition-opacity pointer-events-none border border-white/10">
+                       上传户型和预算，生成你的专属配置方案
+                    </div>
+                  </div>
+              </motion.div>
+           </div>
+
+           <motion.div 
+             animate={{ 
+               y: (showDetails || showAI) ? 50 : 0,
+               opacity: (showDetails || showAI) ? 0 : 1,
+               pointerEvents: (showDetails || showAI) ? 'none' : 'auto'
+             }}
+             transition={{ duration: 0.4 }}
+             className="flex items-center gap-4 mt-6 relative"
+           >
+              {/* Initial Hint Tooltip */}
+              <AnimatePresence>
+                {showEntryHint && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                    className="absolute -top-16 left-0 bg-white text-black px-4 py-2 rounded-2xl text-[12px] font-bold shadow-2xl z-[60] flex flex-col pointer-events-none"
+                  >
+                    <span>想知道这档适不适合你？</span>
+                    <span className="text-[10px] text-black/60">点击查看预算分配和 AI 点评</span>
+                    <div className="absolute -bottom-1 left-6 w-2 h-2 bg-white rotate-45" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Budget Capsule */}
+              <div className="relative">
+                <button 
+                  onClick={() => togglePanel('details')} 
+                  onMouseEnter={() => setHoveredEntry('budget')}
+                  onMouseLeave={() => setHoveredEntry(null)}
+                  className={`flex items-center gap-2.5 px-5 h-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full transition-all hover:bg-white/10 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(255,255,255,0.05)] ${showDetails ? 'ring-2 ring-brand/50 bg-white/10' : ''}`}
+                >
+                   <Info className={`w-3.5 h-3.5 ${showDetails ? 'text-brand' : 'text-white/60'}`} />
+                   <span className="text-[13px] font-medium tracking-wide">预算怎么分</span>
+                </button>
+                <AnimatePresence>
+                  {hoveredEntry === 'budget' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute -top-10 left-0 whitespace-nowrap bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] text-white/80 pointer-events-none border border-white/10"
+                    >
+                      查看这档预算主要花在哪，以及哪些可以省
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* AI Review Capsule */}
+              <div className="relative">
+                <button 
+                  onClick={() => togglePanel('ai')} 
+                  onMouseEnter={() => setHoveredEntry('ai')}
+                  onMouseLeave={() => setHoveredEntry(null)}
+                  className={`flex items-center gap-2.5 px-5 h-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full transition-all hover:bg-white/10 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,182,173,0.1)] ${showAI ? 'ring-2 ring-brand/50 bg-white/10' : ''}`}
+                >
+                   <Sparkles className={`w-3.5 h-3.5 ${showAI ? 'text-brand' : 'text-white/60'}`} />
+                   <span className="text-[13px] font-medium tracking-wide">AI 点评这套</span>
+                </button>
+                <AnimatePresence>
+                  {hoveredEntry === 'ai' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute -top-10 left-0 whitespace-nowrap bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] text-white/80 pointer-events-none border border-white/10"
+                    >
+                      基于当前方案，给出适合人群、升级建议和避坑提醒
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+           </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Budget Tuner Rail (Right) */}
+      <div className="absolute right-12 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-3">
+         <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-4 [writing-mode:vertical-lr]">Tuning Stage</span>
+         <div className="w-[1px] h-[300px] bg-white/10 relative">
+            <div className="absolute top-0 bottom-0 left-[-4px] right-[-4px] flex flex-col justify-between py-2">
+               {FLOORS.slice().reverse().map(f => (
+                 <button 
+                   key={f.level}
+                   onClick={() => handleLevelChange(f.level)}
+                   className={`group relative flex items-center justify-center transition-all h-8 ${f.level === currentLevel ? 'scale-125' : 'hover:scale-110'}`}
+                 >
+                   <div className={`w-2 h-2 rounded-full border transition-all ${f.level === currentLevel ? 'bg-white border-white scale-110' : 'bg-transparent border-white/20 group-hover:border-white/40'}`} />
+                   
+                   {f.level === currentLevel && (
+                     <motion.div 
+                        layoutId="active-dot-ring"
+                        className="absolute w-5 h-5 rounded-full border border-brand/50 blur-[1px]"
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                     />
+                   )}
+                   
+                   <span className={`absolute right-8 text-[10px] font-mono whitespace-nowrap transition-all tracking-wider ${f.level === currentLevel ? 'text-brand translate-x-0 opacity-100' : 'text-white/20 translate-x-2 opacity-0'}`}>
+                     STAGE_{f.model}
+                   </span>
+                 </button>
+               ))}
+            </div>
+         </div>
+      </div>
+
+      {/* Style Toggle (Top Center) */}
+      <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 flex gap-2 p-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
+         {STYLE_TAGS.map(style => (
+           <button 
+             key={style}
+             onClick={() => setCurrentStyle(style as StyleTag)}
+             className={`px-6 py-1.5 rounded-full text-[12px] font-medium transition-all ${currentStyle === style ? 'bg-white text-black' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+           >
+             {style}
+           </button>
+         ))}
+      </div>
+
+      {/* Slide-out Panels */}
+
+      {/* Plan Summary Panel (Center Overlay) */}
+      <AnimatePresence>
+        {showPlanSummary && (
+          <div className="absolute inset-0 z-[150] flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.95 }}
+               animate={{ opacity: 1, scale: 1 }}
+               exit={{ opacity: 0, scale: 0.95 }}
+               className="w-full max-w-[900px] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[48px] overflow-hidden shadow-2xl p-10 flex gap-10"
+             >
+                <div className="w-[360px] h-full rounded-[32px] overflow-hidden border border-white/10 shrink-0">
+                   <img src={SCENE_IMAGES[currentStyle][currentLevel].image} className="w-full h-full object-cover" alt="Plan" />
+                </div>
+                
+                <div className="flex-1 flex flex-col justify-between">
+                   <div className="flex flex-col gap-6">
+                      <div className="flex justify-between items-start">
+                         <div>
+                            <h3 className="text-[32px] font-medium leading-none mb-2">{currentFloor.model} 方案清单</h3>
+                            <div className="flex items-center gap-3">
+                               <span className="text-[14px] text-brand font-mono">{currentFloor.budget}</span>
+                               <div className="w-1 h-1 rounded-full bg-white/20" />
+                               <span className="text-[14px] text-white/40">{currentStyle} 风格</span>
+                            </div>
+                         </div>
+                         <button onClick={() => setShowPlanSummary(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                            <X className="w-5 h-5" />
+                         </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+                         <div>
+                            <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3">核心空间</span>
+                            <div className="flex flex-wrap gap-2">
+                               {['客厅', '餐厅', '主卧', '次卧'].map(s => <span key={s} className="px-3 py-1 bg-white/5 rounded-lg text-[12px] text-white/60">{s}</span>)}
+                            </div>
+                         </div>
+                         <div>
+                            <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3">参考预算区间</span>
+                            <span className="text-[16px] font-mono text-white/80 tracking-tight">{currentFloor.budget}</span>
+                         </div>
+                         <div className="col-span-2">
+                            <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3">核心单品预览</span>
+                            <div className="grid grid-cols-2 gap-2">
+                               {['意式极简皮沙发', '岩板智能茶几', '零重力主卧床垫', '高定透光窗帘'].map(item => (
+                                 <div key={item} className="flex items-center gap-2 text-white/40 text-[12px]">
+                                    <div className="w-1 h-1 rounded-full bg-brand" /> {item}
+                                 </div>
+                               ))}
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="flex items-center gap-4 pt-8">
+                      <button 
+                        onClick={() => {
+                          navigate('/match', { 
+                            state: { 
+                              sourceInspiration: {
+                                name: currentFloor.model,
+                                budget: currentFloor.budget,
+                                style: currentStyle,
+                                level: currentLevel,
+                                image: SCENE_IMAGES[currentStyle][currentLevel].image
+                              }
+                            } 
+                          });
+                        }}
+                        className="flex-1 h-14 bg-white text-black rounded-full font-bold text-[15px] hover:scale-[1.02] transition-transform"
+                      >
+                         按这套生成
+                      </button>
+                      <button 
+                        onClick={() => goToLevelProducts(currentLevel)}
+                        className="flex-1 h-14 bg-white/10 text-white rounded-full font-bold text-[15px] hover:bg-white/20 transition-all border border-white/10"
+                      >
+                         查看完整清单
+                      </button>
+                   </div>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      
+      {/* Left Panel: Budget Breakdown */}
+      <AnimatePresence>
+        {showDetails && (
+          <motion.div 
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -100, opacity: 0 }}
+            className="absolute left-8 top-1/2 -translate-y-1/2 z-[100] w-[460px] p-8 bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[40px] shadow-2xl overflow-y-auto max-h-[85vh] scrollbar-hide"
+          >
+            <div className="flex justify-between items-start mb-8">
+               <div>
+                  <h3 className="text-[26px] font-medium">这档钱花在哪</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                     <span className="text-[12px] text-brand uppercase font-mono tracking-widest">{currentFloor.model}</span>
+                     <div className="w-1 h-1 rounded-full bg-white/20" />
+                     <span className="text-[12px] text-white/60 font-medium">{currentFloor.budget}</span>
+                     <div className="w-1 h-1 rounded-full bg-white/20" />
+                     <span className="text-[12px] text-white/40 font-medium">{currentStyle}</span>
+                  </div>
+               </div>
+               <button onClick={() => setShowDetails(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+               </button>
+            </div>
+
+            <div className="space-y-10 pb-24">
+               {/* Tier Conclusion Card - Redesigned to be the main highlight */}
+               <div className="p-6 bg-white/5 rounded-[32px] border border-white/10 relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1.5 h-full bg-brand/60" />
+                  <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3 font-bold">档位结论</span>
+                  <p className="text-[17px] leading-relaxed text-white font-medium">
+                     {currentLevel <= 3 
+                        ? `这一档开始从“能住”进入“住得省心”。预算不再只补基础件，而是开始拉升整体空间的统一性。` 
+                        : currentLevel <= 7 
+                        ? `这一档开始从“舒适”进入“品质”。${currentFloor.budget}的预算足以拉升主空间材质的高高级感。` 
+                        : `进入“藏家级”配置。为了极致的风格统一度和材质溢价买单，追求设计在感官上的完整闭环。`}
+                  </p>
+               </div>
+
+               {/* Budget Allocation Bars */}
+               <div>
+                  <span className="text-[11px] text-white/20 uppercase tracking-[0.3em] border-b border-white/10 block pb-2 mb-8">预算重心</span>
+                  <div className="space-y-8">
+                     {budgetAllocation.map((item) => (
+                        <div key={item.label} className="space-y-3">
+                           <div className="flex justify-between items-end">
+                              <div>
+                                <span className="text-[14px] text-white/80 font-medium block">{item.label}</span>
+                                <span className="text-[11px] text-white/40 mt-1 block">{item.desc}</span>
+                              </div>
+                              <span className="text-[12px] font-mono text-white/40">{item.value}%</span>
+                           </div>
+                           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                              <motion.div 
+                                 initial={{ width: 0 }}
+                                 animate={{ width: `${item.value}%` }}
+                                 transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                                 className="h-full rounded-full"
+                                 style={{ backgroundColor: item.color }}
+                              />
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+
+               {/* This Stage New Additions */}
+               <div>
+                  <span className="text-[11px] text-white/20 uppercase tracking-[0.3em] border-b border-white/10 block pb-2 mb-4">本档新增</span>
+                  <div className="grid grid-cols-1 gap-3">
+                     {[
+                        currentLevel <= 3 ? "基础会客功能全套件" : currentLevel <= 7 ? "客餐厅核心材质升舱" : "全屋高定系统化呈现",
+                        currentLevel <= 3 ? "主卧遮光帘与主照明" : currentLevel <= 7 ? "全场景灯光控制系统" : "大牌单品/艺术挂画入场",
+                        currentLevel <= 3 ? "餐厅全金属骨架家具" : currentLevel <= 7 ? "卧室亲肤级环保面料" : "顶级真皮及稀有石材",
+                     ].map((point, i) => (
+                        <div key={i} className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 text-white/70">
+                           <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                           <span className="text-[14px]">{point}</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+
+               {/* Diff Cards */}
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                     <span className="text-[10px] text-white/30 uppercase tracking-widest block mb-1">相比低一档</span>
+                     <p className="text-[12px] text-white/60 leading-relaxed">
+                        {currentLevel <= 1 ? "无更低方案" : "多的是舒适度与完整度。"}
+                     </p>
+                  </div>
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                     <span className="text-[10px] text-white/30 uppercase tracking-widest block mb-1">相比高一档</span>
+                     <p className="text-[12px] text-white/60 leading-relaxed">
+                        {currentLevel >= 10 ? "已是顶配方案" : "少的是明确风格、材质统一。"}
+                     </p>
+                  </div>
+               </div>
+
+               {/* Trade-off Recommendations */}
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="p-5 bg-brand/5 rounded-3xl border border-brand/20">
+                     <span className="text-[11px] text-brand uppercase tracking-widest block mb-3">建议保留</span>
+                     <div className="space-y-2">
+                        {['主沙发', '主卧床垫', '全屋窗帘', '客厅主灯'].map(item => (
+                          <div key={item} className="text-[13px] text-white/70">{item}</div>
+                        ))}
+                     </div>
+                  </div>
+                  <div className="p-5 bg-white/5 rounded-3xl border border-white/5">
+                     <span className="text-[11px] text-white/20 uppercase tracking-widest block mb-3">可以延后</span>
+                     <div className="space-y-2">
+                        {['装饰挂画', '部分地毯', '次卧软装', '氛围小灯'].map(item => (
+                          <div key={item} className="text-[13px] text-white/40 underline decoration-white/10 underline-offset-4">{item}</div>
+                        ))}
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Budget Panel Fixed Switch Dock */}
+            <div className="absolute bottom-0 left-0 right-0 p-8 pt-10 bg-gradient-to-t from-black via-black/80 to-transparent z-10">
+               <div className="flex gap-3 p-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
+                  <button 
+                    onClick={() => togglePanel('details')}
+                    className={`flex-1 h-12 rounded-full flex items-center justify-center gap-2 text-[13px] font-bold transition-all ${showDetails ? 'bg-white text-black' : 'text-white/40 hover:bg-white/5'}`}
+                  >
+                    <Info className="w-4 h-4" /> 预算怎么分
+                  </button>
+                  <button 
+                    onClick={() => togglePanel('ai')}
+                    className={`flex-1 h-12 rounded-full flex items-center justify-center gap-2 text-[13px] font-bold transition-all ${showAI ? 'bg-white text-black' : 'text-white/40 hover:bg-white/5'}`}
+                  >
+                    <Sparkles className="w-4 h-4" /> AI 点评这套
+                  </button>
+               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Right Panel: AI Strategic Review */}
+      <AnimatePresence>
+        {showAI && (
+          <motion.div 
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ x: 100, opacity: 0 }}
+            className="absolute right-8 top-1/2 -translate-y-1/2 z-[100] w-[460px] p-8 bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[40px] shadow-2xl overflow-y-auto max-h-[85vh] scrollbar-hide"
+          >
+            <div className="flex justify-between items-start mb-8">
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-brand/20 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-brand" />
+                  </div>
+                  <div>
+                    <h3 className="text-[26px] font-medium">{aiContent.title}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-brand uppercase tracking-[0.2em] font-bold">{aiContent.subtitle}</span>
+                    </div>
+                  </div>
+               </div>
+               <button onClick={() => setShowAI(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+               </button>
+            </div>
+
+            <AnimatePresence mode="wait">
+               {isEvaluating ? (
+                 <motion.div 
+                   key="evaluating"
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   exit={{ opacity: 0 }}
+                   className="h-[400px] flex flex-col items-center justify-center gap-6"
+                 >
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full border-2 border-brand/10" />
+                      <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-t-brand animate-spin" />
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                       <span className="text-[14px] text-white/60 font-medium animate-pulse">正在重新评估当前方案...</span>
+                       <span className="text-[10px] text-white/20 font-mono tracking-widest uppercase">Analyzing Spatial Data</span>
+                    </div>
+                 </motion.div>
+               ) : (
+                 <motion.div 
+                   key="content"
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                   className="space-y-10 pb-24"
+                 >
+                    {/* Bottom Line Bro One Liner */}
+                    <div className="p-5 bg-white/5 rounded-[32px] border border-white/10 relative overflow-hidden group">
+                       <div className="absolute top-0 left-0 w-1.5 h-full bg-brand" />
+                       <div className="flex items-center gap-2 mb-3">
+                         <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold">底线哥一句话</span>
+                         <MessageSquare className="w-3 h-3 text-white/20" />
+                       </div>
+                       <p className="text-[17px] leading-relaxed text-white font-medium italic">
+                          “{aiContent.dixiange}”
+                       </p>
+                    </div>
+
+                    {/* Integrated Summary */}
+                    <div>
+                       <span className="text-[11px] text-white/20 uppercase tracking-[0.3em] border-b border-white/10 block pb-2 mb-6">综合判断</span>
+                       <p className="text-[15px] text-white/70 leading-relaxed font-light">
+                          {aiContent.assessment}
+                       </p>
+                    </div>
+
+                    {/* General Evaluation Scores */}
+                    <div className="grid grid-cols-2 gap-3">
+                       {[
+                         { label: '预算效率', score: 92 },
+                         { label: '舒适提升', score: currentLevel * 10 > 100 ? 98 : currentLevel * 10 },
+                         { label: '风格完整', score: currentLevel > 6 ? 90 : 70 },
+                         { label: '配套统一度', score: currentLevel > 4 ? 85 : 60 }
+                       ].map(s => (
+                         <div key={s.label} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <span className="text-[11px] text-white/30 block mb-1">{s.label}</span>
+                            <div className="flex items-baseline gap-1">
+                               <span className="text-[20px] font-mono text-white/80">{s.score}</span>
+                               <span className="text-[10px] text-white/40">/100</span>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+
+                    {/* Strengths */}
+                    <div>
+                       <span className="text-[11px] text-brand/60 uppercase tracking-[0.3em] border-b border-brand/10 block pb-2 mb-4">当前优势</span>
+                       <div className="space-y-3">
+                          {aiContent.strengths.map((item, i) => (
+                             <div key={i} className="flex gap-3 text-[14px] text-white/70 items-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-brand/40" />
+                                <span>{item}</span>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+
+                    {/* Points to Note */}
+                    <div>
+                       <span className="text-[11px] text-orange-400/60 uppercase tracking-[0.3em] border-b border-orange-400/10 block pb-2 mb-4">需要注意</span>
+                       <div className="space-y-3">
+                          {aiContent.needs.map((item, i) => (
+                             <div key={i} className="flex gap-3 text-[14px] text-white/50 items-start">
+                                <span className="text-orange-400/60 mt-1">•</span>
+                                <span>{item}</span>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+
+                    {/* Recommendations */}
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="p-5 bg-brand/5 rounded-3xl border border-brand/20">
+                          <span className="text-[11px] text-brand uppercase tracking-widest block mb-3">如果加预算</span>
+                          <div className="space-y-2">
+                             {aiContent.add.map(s => <div key={s} className="text-[12px] text-white underline underline-offset-4 decoration-brand/20">{s}</div>)}
+                          </div>
+                       </div>
+                       <div className="p-5 bg-white/5 rounded-3xl border border-white/5">
+                          <span className="text-[11px] text-white/20 uppercase tracking-widest block mb-3">如果减预算</span>
+                          <div className="space-y-2">
+                             {aiContent.sub.map(s => <div key={s} className="text-[12px] text-white/30">{s}</div>)}
+                          </div>
+                       </div>
+                    </div>
+                 </motion.div>
+               )}
+            </AnimatePresence>
+            
+            {/* AI Review Fixed Switch Dock */}
+            <div className="absolute bottom-0 left-0 right-0 p-8 pt-10 bg-gradient-to-t from-black via-black/80 to-transparent z-10">
+               <div className="flex gap-3 p-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
+                  <button 
+                    onClick={() => togglePanel('details')}
+                    className={`flex-1 h-12 rounded-full flex items-center justify-center gap-2 text-[13px] font-bold transition-all ${showDetails ? 'bg-white text-black' : 'text-white/40 hover:bg-white/5'}`}
+                  >
+                    <Info className="w-4 h-4" /> 预算怎么分
+                  </button>
+                  <button 
+                    onClick={() => togglePanel('ai')}
+                    className={`flex-1 h-12 rounded-full flex items-center justify-center gap-2 text-[13px] font-bold transition-all ${showAI ? 'bg-white text-black' : 'text-white/40 hover:bg-white/5'}`}
+                  >
+                    <Sparkles className="w-4 h-4" /> AI 点评这套
+                  </button>
+               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Status (Bottom Corner) */}
+      <div className="absolute bottom-10 right-10 z-[120] text-right pointer-events-none">
+         <motion.div
+           key={currentStyle + currentLevel + 'status-meta'}
+           initial={{ opacity: 0, x: 20 }}
+           animate={{ opacity: 1, x: 0 }}
+           transition={{ duration: 0.6 }}
+         >
+           <span className="text-[10px] font-mono text-white/20 uppercase tracking-[0.3em]">DXG_SPATIAL_STAGE</span>
+           <div className="text-[16px] font-medium text-white/50 mt-1 flex items-center justify-end gap-3">
+              <span className="tracking-tight">{currentStyle}</span>
+              <div className="w-1 h-1 rounded-full bg-white/20" />
+              <span className="font-mono text-white/80">{currentFloor.model}</span>
+           </div>
+         </motion.div>
+      </div>
+    </div>
+  );
+}
+

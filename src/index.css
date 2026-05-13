@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-brand: #00B5AD;
+  --color-brand-light: rgba(0, 181, 173, 0.2);
+  --color-glass: rgba(255, 255, 255, 0.4);
+  --color-glass-border: rgba(255, 255, 255, 0.5);
+  --color-glass-dark: rgba(0, 0, 0, 0.05);
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+}
+
+@layer base {
+  body {
+    @apply font-sans text-gray-900 bg-white antialiased overflow-y-auto;
+  }
+}
+
+@utility glass-morphism {
+  @apply bg-white/30 backdrop-blur-2xl border border-white/40 shadow-[0_4px_24px_rgba(31,38,135,0.05)];
+}
+
+@utility glass-card {
+  @apply glass-morphism rounded-[32px] p-6 transition-all duration-300;
+}
+
+@utility glass-button {
+  @apply glass-morphism rounded-full px-6 py-2 transition-all duration-300 hover:bg-white/60 active:scale-95;
+}
+
+@utility brand-glow {
+  @apply shadow-[0_0_20px_rgba(0,181,173,0.3)];
+}
+
+@utility perspective-container {
+  perspective: 1200px;
+}
+
+@utility floor-platform-clip {
+  mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
+}
+
+

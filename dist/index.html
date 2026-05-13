@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Google AI Studio App</title>
+    <script type="module" crossorigin src="/assets/index-CojHwgLg.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Dl0KHnc-.css">
+  </head>
+  <body>
+    <script>
+      // Global fix for "fetch is only a getter" error
+      // This must run before any other scripts to preemptively make fetch writable
+      (function() {
+        try {
+          var originalFetch = window.fetch;
+          if (originalFetch) {
+            Object.defineProperty(window, 'fetch', {
+              value: originalFetch,
+              writable: true,
+              configurable: true,
+              enumerable: true
+            });
+          }
+        } catch (e) {
+          // ignore
+        }
+      })();
+    </script>
+    <div id="root"></div>
+  </body>
+</html>
+
