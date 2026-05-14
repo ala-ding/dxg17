@@ -13,6 +13,9 @@ interface HomePageProps {
   openModal: (type: any, data?: any) => void;
 }
 
+import { Link } from 'react-router-dom';
+import { analyticsService } from '../services/analyticsService';
+
 export default function HomePage({ 
   currentLevel, setCurrentLevel, 
   currentStyle, setCurrentStyle, 
@@ -23,11 +26,14 @@ export default function HomePage({
 
   // Handle intersection for active section tracking
   useEffect(() => {
+    analyticsService.track('page_view', { page: 'home' });
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            setActiveSection(parseInt(entry.target.getAttribute('data-id') || '0'));
+            const sid = parseInt(entry.target.getAttribute('data-id') || '0');
+            setActiveSection(sid);
+            analyticsService.track('scroll_section', { section_id: sid });
           }
         });
       },
@@ -66,6 +72,9 @@ export default function HomePage({
           transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
           className="relative z-10 text-center px-6 max-w-4xl"
         >
+          <div className="inline-flex items-center gap-2 px-4 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[12px] font-black tracking-widest text-brand mb-8 uppercase">
+            Designed by DXG AI
+          </div>
           <h1 className="text-[64px] md:text-[88px] font-medium tracking-tight leading-tight mb-8">
             先看见家，<br />
             再决定预算。
@@ -76,17 +85,38 @@ export default function HomePage({
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <button 
-              onClick={() => containerRef.current?.scrollTo({ top: window.innerHeight * 2, behavior: 'smooth' })}
-              className="px-10 h-14 bg-white text-black rounded-full text-[16px] font-bold hover:scale-105 active:scale-95 transition-all shadow-2xl"
+              onClick={() => {
+                containerRef.current?.scrollTo({ top: window.innerHeight * 2, behavior: 'smooth' });
+                analyticsService.track('click_hero_preview');
+              }}
+              className="px-10 h-16 bg-white text-black rounded-full text-[17px] font-bold hover:scale-105 active:scale-95 transition-all shadow-2xl"
             >
-              直接预览
+              直接预览方案
             </button>
-            <button 
-              onClick={() => openModal('newPlan')}
-              className="px-10 h-14 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full text-[16px] font-bold hover:bg-white/20 transition-all flex items-center gap-2"
+            <Link 
+              to="/products"
+              onClick={() => analyticsService.track('click_hero_products')}
+              className="px-10 h-16 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full text-[17px] font-bold hover:bg-white/20 transition-all flex items-center justify-center gap-2"
             >
-              新建方案 <ArrowRight className="w-4 h-4" />
-            </button>
+              搜索单品库 <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="flex items-center justify-center gap-8 mt-16 pt-8 border-t border-white/5">
+             <div className="flex flex-col items-center">
+                <span className="text-[24px] font-black text-white">400+</span>
+                <span className="text-[11px] text-white/30 uppercase tracking-widest">设计师严选单品</span>
+             </div>
+             <div className="w-px h-8 bg-white/10" />
+             <div className="flex flex-col items-center">
+                <span className="text-[24px] font-black text-white">5</span>
+                <span className="text-[11px] text-white/30 uppercase tracking-widest">预算体系层级</span>
+             </div>
+             <div className="w-px h-8 bg-white/10" />
+             <div className="flex flex-col items-center">
+                <span className="text-[24px] font-black text-white">0</span>
+                <span className="text-[11px] text-white/30 uppercase tracking-widest">设计费用支出</span>
+             </div>
           </div>
         </motion.div>
 
@@ -221,9 +251,16 @@ export default function HomePage({
               新建 AI 方案
             </button>
             <button 
+              onClick={() => {
+                containerRef.current?.scrollTo({
+                  top: window.innerHeight * 2,
+                  behavior: 'smooth'
+                });
+                analyticsService.track('click_view_budget_examples');
+              }}
               className="px-12 h-16 bg-white/5 backdrop-blur-xl border border-white/10 text-white rounded-full text-[17px] font-bold hover:bg-white/10 transition-all"
             >
-              查看示例
+              查看预算案例
             </button>
           </div>
 

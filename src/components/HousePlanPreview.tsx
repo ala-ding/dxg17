@@ -1,12 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { planService } from '../services/planService';
+import { PLAN_TEMPLATES } from '../data/planTemplates';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowRight, ShoppingBag, CheckCircle2,
-  Upload, Edit3, Sparkles, TrendingDown, Info, MessageSquare, X, ChevronRight
+  Upload, Edit3, Sparkles, TrendingDown, Info, MessageSquare, X, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import { FLOORS, STYLE_TAGS, SCENE_IMAGES } from '../constants';
 import { StyleTag } from '../types';
+import TemplateChecklistModal from './TemplateChecklistModal';
+
+const budgetLevelMap: Record<string, { title: string; subtitle: string }> = {
+  '1万以内': { title: '极简入门版', subtitle: '适合简装居住' },
+  '1-2万': { title: '精选入门版', subtitle: '适合基础配置' },
+  '2-3万': { title: '舒适基础版', subtitle: '适合基础软装配置' },
+  '3-5万': { title: '品质进阶版', subtitle: '适合完整软装入门' },
+  '5-10万': { title: '设计精选版', subtitle: '适合品质感升级' },
+  '10-15万': { title: '格调生活版', subtitle: '适合全空间风格化' },
+  '15-25万': { title: '高阶定制版', subtitle: '适合全屋系统搭配' },
+  '25-50万': { title: '典雅至尊版', subtitle: '适合奢华软装配置' },
+  '50-100万': { title: '国际藏家版', subtitle: '适合顶奢艺术配置' },
+  '100万以上': { title: '臻选收藏版', subtitle: '适合高端定制配置' }
+};
 
 interface HousePlanPreviewProps {
   currentLevel: number;
@@ -27,6 +43,7 @@ export default function HousePlanPreview({
   const [showDetails, setShowDetails] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showPlanSummary, setShowPlanSummary] = useState(false);
+  const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showEntryHint, setShowEntryHint] = useState(false);
   const [hoveredEntry, setHoveredEntry] = useState<'budget' | 'ai' | null>(null);
@@ -35,6 +52,9 @@ export default function HousePlanPreview({
   const [rubberBand, setRubberBand] = useState<'top' | 'bottom' | null>(null);
   
   const currentFloor = FLOORS.find(f => f.level === currentLevel) || FLOORS[3];
+  
+  // Find current template based on model code
+  const currentTemplate = PLAN_TEMPLATES.find(t => t.code === currentFloor.model) || PLAN_TEMPLATES[0];
 
   // AI Content Generator
   const getAIContent = () => {
@@ -183,16 +203,40 @@ export default function HousePlanPreview({
     setTimeout(() => setRubberBand(null), 300);
   };
 
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [newPlanName, setNewPlanName] = useState('');
+
+  const generatePlanFromCase = async () => {
+    try {
+      const name = newPlanName || `${currentFloor.model} ${currentStyle}全屋方案 - ${new Date().toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }).replace('/', '月')}日`;
+      
+      const newPlan = await planService.createPlanFromTemplate(currentTemplate.id, {
+        name
+      });
+
+      // Show toast and navigate
+      showToast('方案生成成功，已导入全部模板清单');
+      setIsGeneratingPlan(false);
+      navigate(`/my-plans?planId=${newPlan.id}`);
+    } catch (error: any) {
+      console.error(error);
+      showToast(`生成失败，请检查模板数据`);
+    }
+  };
+
   const goToLevelProducts = (level: number) => {
-    // Navigate with state to allow returning
-    navigate(`/products?level=${level}`, { 
+    // Navigate with parameters for filtering
+    const style = currentStyle;
+    const model = currentFloor.model;
+    navigate(`/products?level=${level}&style=${style}&fromCase=${model}`, { 
       state: { 
         returnLevel: currentLevel, 
         returnStyle: currentStyle,
-        fromPreview: true 
+        fromPreview: true,
+        recommendedOnly: true
       } 
     });
-    showToast(`正在进入：${FLOORS.find(f => f.level === level)?.model} 方案完整清单`);
+    showToast(`正在进入：${model} 方案推荐清单`);
   };
 
   // Close panels on Esc key
@@ -223,17 +267,17 @@ export default function HousePlanPreview({
       const atLast = currentLevel === 10;
 
       if (e.deltaY > 20) {
-        if (atLast) {
-          triggerRubberBand('bottom');
-        } else {
-          handleLevelChange(currentLevel + 1);
-        }
-        lastScrollTime.current = now;
-      } else if (e.deltaY < -20) {
         if (atFirst) {
           triggerRubberBand('top');
         } else {
           handleLevelChange(currentLevel - 1);
+        }
+        lastScrollTime.current = now;
+      } else if (e.deltaY < -20) {
+        if (atLast) {
+          triggerRubberBand('bottom');
+        } else {
+          handleLevelChange(currentLevel + 1);
         }
         lastScrollTime.current = now;
       }
@@ -304,11 +348,15 @@ export default function HousePlanPreview({
       >
         <div className="flex flex-col gap-4">
            <div className="flex items-center gap-6">
-              <h2 className="text-[64px] font-medium tracking-tighter leading-none">{currentFloor.model}</h2>
+              <h2 className="text-[64px] font-black tracking-tighter leading-none text-white">{currentFloor.budget}</h2>
               <div className="h-10 w-px bg-white/20" />
               <div className="flex flex-col">
-                 <span className="text-[20px] font-medium text-white/80">{currentFloor.budget}</span>
-                 <span className="text-[12px] font-medium text-white/40 uppercase tracking-[0.2em]">{currentFloor.name}</span>
+                 <span className="text-[20px] font-black text-brand uppercase tracking-wider">
+                   {budgetLevelMap[currentFloor.budget]?.title || currentFloor.name}
+                 </span>
+                 <span className="text-[12px] font-medium text-white/40 uppercase tracking-[0.2em]">
+                   {budgetLevelMap[currentFloor.budget]?.subtitle || currentFloor.value}
+                 </span>
               </div>
            </div>
            
@@ -422,7 +470,7 @@ export default function HousePlanPreview({
 
       {/* Budget Tuner Rail (Right) */}
       <div className="absolute right-12 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-3">
-         <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-4 [writing-mode:vertical-lr]">Tuning Stage</span>
+         <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-4 [writing-mode:vertical-lr]">Budget Levels</span>
          <div className="w-[1px] h-[300px] bg-white/10 relative">
             <div className="absolute top-0 bottom-0 left-[-4px] right-[-4px] flex flex-col justify-between py-2">
                {FLOORS.slice().reverse().map(f => (
@@ -438,11 +486,11 @@ export default function HousePlanPreview({
                         layoutId="active-dot-ring"
                         className="absolute w-5 h-5 rounded-full border border-brand/50 blur-[1px]"
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                     />
+                      />
                    )}
                    
-                   <span className={`absolute right-8 text-[10px] font-mono whitespace-nowrap transition-all tracking-wider ${f.level === currentLevel ? 'text-brand translate-x-0 opacity-100' : 'text-white/20 translate-x-2 opacity-0'}`}>
-                     STAGE_{f.model}
+                   <span className={`absolute right-8 text-[11px] font-black whitespace-nowrap transition-all tracking-tight ${f.level === currentLevel ? 'text-brand translate-x-0 opacity-100' : 'text-white/20 translate-x-2 opacity-0'}`}>
+                     {f.budget}
                    </span>
                  </button>
                ))}
@@ -450,13 +498,27 @@ export default function HousePlanPreview({
          </div>
       </div>
 
-      {/* Style Toggle (Top Center) */}
-      <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 flex gap-2 p-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
+      {/* Style Toggle (Top Center) - Readable Glassmorphism Design */}
+      <div 
+        className="
+          absolute top-24 left-1/2 -translate-x-1/2 z-50 
+          flex items-center gap-1.5 p-2 bg-black/45 backdrop-blur-xl 
+          border border-white/20 rounded-full
+          shadow-[0_10px_40px_rgba(0,0,0,0.35)]
+          max-w-[calc(100vw-32px)] overflow-x-auto no-scrollbar
+        "
+      >
          {STYLE_TAGS.map(style => (
            <button 
              key={style}
              onClick={() => setCurrentStyle(style as StyleTag)}
-             className={`px-6 py-1.5 rounded-full text-[12px] font-medium transition-all ${currentStyle === style ? 'bg-white text-black' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+             className={`
+               h-11 px-6 rounded-full text-[14px] font-bold transition-all whitespace-nowrap flex items-center justify-center
+               ${currentStyle === style 
+                 ? 'bg-white text-black shadow-lg' 
+                 : 'text-white/90 hover:bg-white/15 hover:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]'
+               }
+             `}
            >
              {style}
            </button>
@@ -479,15 +541,17 @@ export default function HousePlanPreview({
                    <img src={SCENE_IMAGES[currentStyle][currentLevel].image} className="w-full h-full object-cover" alt="Plan" />
                 </div>
                 
-                <div className="flex-1 flex flex-col justify-between">
-                   <div className="flex flex-col gap-6">
+                <div className="flex-1 flex flex-col justify-between overflow-hidden">
+                   <div className="flex flex-col gap-6 overflow-hidden">
                       <div className="flex justify-between items-start">
                          <div>
-                            <h3 className="text-[32px] font-medium leading-none mb-2">{currentFloor.model} 方案清单</h3>
+                            <h3 className="text-[32px] font-medium leading-none mb-2">{currentTemplate.name}</h3>
                             <div className="flex items-center gap-3">
-                               <span className="text-[14px] text-brand font-mono">{currentFloor.budget}</span>
+                               <span className="text-[14px] text-brand font-mono">{currentTemplate.budgetRange}</span>
                                <div className="w-1 h-1 rounded-full bg-white/20" />
-                               <span className="text-[14px] text-white/40">{currentStyle} 风格</span>
+                               <span className="text-[14px] text-white/40">{currentTemplate.style}</span>
+                               <div className="w-1 h-1 rounded-full bg-white/20" />
+                               <span className="text-[14px] text-white/40">{currentTemplate.areaRange}</span>
                             </div>
                          </div>
                          <button onClick={() => setShowPlanSummary(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
@@ -497,21 +561,28 @@ export default function HousePlanPreview({
 
                       <div className="grid grid-cols-2 gap-y-6 gap-x-8">
                          <div>
-                            <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3">核心空间</span>
+                            <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3">涵盖空间</span>
                             <div className="flex flex-wrap gap-2">
-                               {['客厅', '餐厅', '主卧', '次卧'].map(s => <span key={s} className="px-3 py-1 bg-white/5 rounded-lg text-[12px] text-white/60">{s}</span>)}
+                               {currentTemplate.spaces.map(s => <span key={s} className="px-3 py-1 bg-white/5 rounded-lg text-[12px] text-white/60">{s}</span>)}
                             </div>
                          </div>
                          <div>
-                            <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3">参考预算区间</span>
-                            <span className="text-[16px] font-mono text-white/80 tracking-tight">{currentFloor.budget}</span>
+                            <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3">产品总数</span>
+                            <span className="text-[16px] font-mono text-white/80 tracking-tight">{currentTemplate.items.length} 件软装单品</span>
                          </div>
-                         <div className="col-span-2">
-                            <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block mb-3">核心单品预览</span>
-                            <div className="grid grid-cols-2 gap-2">
-                               {['意式极简皮沙发', '岩板智能茶几', '零重力主卧床垫', '高定透光窗帘'].map(item => (
-                                 <div key={item} className="flex items-center gap-2 text-white/40 text-[12px]">
-                                    <div className="w-1 h-1 rounded-full bg-brand" /> {item}
+                         <div className="col-span-2 overflow-hidden">
+                            <div className="flex justify-between items-center mb-3">
+                               <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] block">案例清单预览 (前6项)</span>
+                               <span className="text-[10px] text-brand font-bold">总计: ¥{currentTemplate.items.reduce((sum, i) => sum + (i.unitPrice || 0) * (i.quantity || 1), 0).toLocaleString()}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 overflow-y-auto max-h-[120px] scrollbar-hide">
+                               {currentTemplate.items.slice(0, 6).map((item, idx) => (
+                                 <div key={idx} className="flex items-center justify-between gap-2 text-white/40 text-[12px] bg-white/5 px-3 py-2 rounded-xl">
+                                    <div className="flex items-center gap-2 truncate whitespace-nowrap overflow-hidden">
+                                       <div className="w-1 h-1 rounded-full bg-brand shrink-0" />
+                                       <span className="truncate">{item.name}</span>
+                                    </div>
+                                    <span className="text-white/20 shrink-0">x{item.quantity}</span>
                                  </div>
                                ))}
                             </div>
@@ -522,24 +593,16 @@ export default function HousePlanPreview({
                    <div className="flex items-center gap-4 pt-8">
                       <button 
                         onClick={() => {
-                          navigate('/match', { 
-                            state: { 
-                              sourceInspiration: {
-                                name: currentFloor.model,
-                                budget: currentFloor.budget,
-                                style: currentStyle,
-                                level: currentLevel,
-                                image: SCENE_IMAGES[currentStyle][currentLevel].image
-                              }
-                            } 
-                          });
+                          setShowPlanSummary(false);
+                          setNewPlanName(`${budgetLevelMap[currentFloor.budget]?.title || currentFloor.name}｜${currentFloor.budget}｜${currentStyle}方案`);
+                          setIsGeneratingPlan(true);
                         }}
                         className="flex-1 h-14 bg-white text-black rounded-full font-bold text-[15px] hover:scale-[1.02] transition-transform"
                       >
                          按这套生成
                       </button>
                       <button 
-                        onClick={() => goToLevelProducts(currentLevel)}
+                        onClick={() => setShowChecklistModal(true)}
                         className="flex-1 h-14 bg-white/10 text-white rounded-full font-bold text-[15px] hover:bg-white/20 transition-all border border-white/10"
                       >
                          查看完整清单
@@ -547,6 +610,64 @@ export default function HousePlanPreview({
                    </div>
                 </div>
              </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Generate From Case Modal */}
+      <AnimatePresence>
+        {isGeneratingPlan && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-lg bg-[#1A1A1A] border border-white/10 rounded-[32px] p-8 shadow-2xl"
+            >
+              <h3 className="text-[24px] font-black text-white mb-2">生成我的方案</h3>
+              <p className="text-[14px] text-white/40 mb-8 leading-relaxed">
+                系统将基于 <span className="text-brand">{currentFloor.model} {currentStyle}</span> 案例创建一个独立方案，之后你可以自由修改选品。
+              </p>
+              
+              <div className="space-y-6 mb-10">
+                <div className="space-y-2">
+                  <label className="text-[12px] font-black text-white/20 uppercase tracking-widest px-1">方案名称</label>
+                  <input 
+                    type="text"
+                    value={newPlanName}
+                    onChange={(e) => setNewPlanName(e.target.value)}
+                    placeholder="请输入方案名称"
+                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-white text-[15px] focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all font-bold"
+                  />
+                </div>
+                
+                <div className="bg-white/5 p-4 rounded-2xl flex flex-col gap-2">
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-white/40">参考预算</span>
+                    <span className="text-brand font-black">{currentFloor.budget}</span>
+                  </div>
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-white/40">风格档位</span>
+                    <span className="text-white font-bold">{currentStyle} / {currentFloor.model}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setIsGeneratingPlan(false)}
+                  className="flex-1 h-14 bg-white/5 text-white/40 rounded-full font-bold text-[15px] hover:bg-white/10 transition-all"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={generatePlanFromCase}
+                  className="flex-1 h-14 bg-brand text-white rounded-full font-bold text-[15px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-brand/20"
+                >
+                  确认生成
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -860,10 +981,25 @@ export default function HousePlanPreview({
            <div className="text-[16px] font-medium text-white/50 mt-1 flex items-center justify-end gap-3">
               <span className="tracking-tight">{currentStyle}</span>
               <div className="w-1 h-1 rounded-full bg-white/20" />
-              <span className="font-mono text-white/80">{currentFloor.model}</span>
+              <span className="font-mono text-white/80">{currentFloor.budget}</span>
            </div>
          </motion.div>
       </div>
+
+      {/* Checklist Preview Modal */}
+      {showChecklistModal && (
+        <TemplateChecklistModal
+          template={currentTemplate}
+          onBack={() => setShowChecklistModal(false)}
+          onClose={() => setShowChecklistModal(false)}
+          onGenerate={() => {
+            setShowChecklistModal(false);
+            setShowPlanSummary(false);
+            setNewPlanName(`${budgetLevelMap[currentFloor.budget]?.title || currentFloor.name}｜${currentFloor.budget}｜${currentStyle}方案`);
+            setIsGeneratingPlan(true);
+          }}
+        />
+      )}
     </div>
   );
 }

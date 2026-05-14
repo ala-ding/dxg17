@@ -1,57 +1,98 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { 
   ChevronRight, ArrowLeft, ShoppingBag, Sparkles, ShieldCheck, 
   Info, AlertTriangle, CheckCircle2, TrendingUp, Layers, 
   Ruler, Box, Wrench, Droplet, Users, ChevronDown, Share2, 
   Maximize2, Play, Heart, RefreshCw, Zap, Minus, Plus, Search
 } from 'lucide-react';
-import { MOCK_PRODUCTS_LIST as MOCK_PRODUCTS, Product } from '../data/products';
+import { Product } from '../types/business';
+import { productService } from '../services/productService';
+import { libraryService } from '../services/libraryService';
+import { analyticsService } from '../services/analyticsService';
+import Toast from '../components/Toast';
+import AddToPlanModal from '../components/AddToPlanModal';
 
 const SECTION_IDS = [
-  { id: 'overview', name: '概览' },
-  { id: 'effect', name: '效果' },
-  { id: 'budget', name: '预算' },
-  { id: 'matching', name: '搭配' },
-  { id: 'suitability', name: '适合谁' },
-  { id: 'landing', name: '落地' },
-  { id: 'params', name: '参数' }
+  { id: 'overview', name: '产品概览' },
+  { id: 'effect', name: '搭配效果' },
+  { id: 'budget', name: '预算影响' },
+  { id: 'matching', name: '专业搭配' },
+  { id: 'suitability', name: '家庭适配' },
+  { id: 'landing', name: '落地提醒' },
+  { id: 'params', name: '参数详情' }
 ];
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const snapshot = location.state?.productSnapshot;
+  const planId = location.state?.planId;
+
+  const [product, setProduct] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
   const [isScrolled, setIsScrolled] = useState(false);
   const [focusPoint, setFocusPoint] = useState<'default' | 'budget' | 'effect' | 'size' | 'family'>('default');
   
-  const product = useMemo(() => MOCK_PRODUCTS.find(p => p.id === id), [id]);
+  // Add to plan modal state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   
-  const handleJoinPlan = () => {
-    if (!product) return;
-    const saved = localStorage.getItem('user_plans');
-    const plans = saved ? JSON.parse(saved) : [];
-    const currentPlanId = localStorage.getItem('current_plan_id');
-    const currentPlan = plans.find((p: any) => p.id === currentPlanId);
+  useEffect(() => {
+    if (id) {
+      loadProduct(id);
+      analyticsService.track('page_view', { page: 'product_detail', product_id: id });
+    }
+  }, [id]);
 
-    if (currentPlan) {
-      alert(`已将“${product.name}”加入当前方案：${currentPlan.name}`);
-    } else if (plans.length > 0) {
-      const planNames = plans.map((p: any) => p.name).join('\n');
-      alert(`请选择要加入的方案：\n${planNames}\n\n(提示：在原型中默认加入第一个)`);
-    } else {
-      if (confirm('当前没有活跃方案，是否立即新建一个方案？')) {
-        navigate('/match');
+  const loadProduct = async (id: string) => {
+    try {
+      setLoading(true);
+      const data = await productService.getProductById(id);
+      if (data) {
+        setProduct(data);
+      } else if (snapshot) {
+        setProduct(snapshot);
       }
+    } catch (e) {
+      if (snapshot) {
+        setProduct(snapshot);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleJoinLibrary = () => {
+  const productPrice = useMemo(() => {
+    if (!product) return 0;
+    return Number(product.price ?? product.unitPrice ?? product.unit_price ?? 0);
+  }, [product]);
+
+  const handleJoinPlan = () => {
+    setIsAddModalOpen(true);
+    if (product) {
+      analyticsService.track('click_add_to_plan', { product_id: product.id });
+    }
+  };
+
+  const handleJoinLibrary = async () => {
     if (!product) return;
-    const library = JSON.parse(localStorage.getItem('product_library') || '[]');
-    localStorage.setItem('product_library', JSON.stringify([...library, product]));
-    alert('已加入我的产品库！');
+    try {
+      const success = await libraryService.addToLibrary(product.id);
+      if (success) {
+        setToastMessage('已加入灵感产品库！');
+        analyticsService.track('add_to_library', { product_id: product.id });
+      } else {
+        setToastMessage('系统异常，请稍后重试。');
+      }
+    } catch (e) {
+      setToastMessage('已存在于灵感库中。');
+    }
   };
   
   useEffect(() => {
@@ -85,12 +126,44 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleBackToPlan = () => {
+    const fromTab = location.state?.fromTab || 'items';
+
+    if (planId) {
+      navigate(`/my-plans?planId=${planId}&tab=${fromTab}`, {
+        replace: true
+      });
+    } else {
+      navigate(-1);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
+        <div className="text-center">
+          <RefreshCw className="w-12 h-12 text-brand animate-spin mx-auto mb-4" />
+          <p className="text-white/40 font-bold">正在搜寻全球好物...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FDFDFD]">
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
         <div className="text-center">
-          <h1 className="text-2xl font-black mb-4">产品未找到</h1>
-          <Link to="/products" className="text-brand font-black hover:underline">返回产品库</Link>
+          <AlertTriangle className="w-12 h-12 text-white/20 mx-auto mb-6" />
+          <h1 className="text-2xl font-black mb-8">产品信息暂不可用</h1>
+          <div className="flex items-center justify-center gap-4">
+            <button 
+              onClick={handleBackToPlan}
+              className="text-brand font-black hover:underline px-8 py-3 bg-brand/5 rounded-full border border-brand/20 transition-all"
+            >
+              {planId ? '返回方案详情' : '返回上一页'}
+            </button>
+            <Link to="/products" className="text-white/40 font-black hover:text-white px-8 py-3 bg-white/5 rounded-full transition-all">返回产品库</Link>
+          </div>
         </div>
       </div>
     );
@@ -105,7 +178,7 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-[#1D1D1F]">
+    <div className="min-h-screen bg-[#0A0A0A] text-white">
       {/* 0. Sticky Header Navigation */}
       <AnimatePresence>
         <motion.div 
@@ -113,17 +186,17 @@ export default function ProductDetailPage() {
           animate={{ y: 0, opacity: 1 }}
           className="fixed top-[100px] left-0 right-0 z-[400] px-6 hidden md:flex justify-center pointer-events-none"
         >
-          <div className="w-full max-w-5xl h-16 bg-white/80 backdrop-blur-3xl border border-black/5 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.08)] pointer-events-auto flex items-center px-8 justify-between">
+          <div className="w-full max-w-5xl h-16 bg-black/80 backdrop-blur-3xl border border-white/5 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.4)] pointer-events-auto flex items-center px-8 justify-between">
              <div className="flex items-center gap-4">
                 <span className={`text-[15px] font-black underline-offset-4 decoration-2 ${isScrolled ? 'block' : 'hidden'}`}>{product.name}</span>
-                {!isScrolled && <span className="text-[13px] font-black text-gray-400">快速导航：</span>}
-                <div className={`h-4 w-px bg-gray-200 mx-2 ${isScrolled ? 'block' : 'hidden md:block'}`} />
+                {!isScrolled && <span className="text-[13px] font-black text-white/30">快速导航：</span>}
+                <div className={`h-4 w-px bg-white/10 mx-2 ${isScrolled ? 'block' : 'hidden md:block'}`} />
                 <div className="flex gap-6">
                   {SECTION_IDS.map(s => (
                     <button 
                       key={s.id}
                       onClick={() => scrollToSection(s.id)}
-                      className={`text-[13px] font-black transition-colors relative ${activeSection === s.id ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}
+                      className={`text-[13px] font-black transition-colors relative ${activeSection === s.id ? 'text-brand' : 'text-white/30 hover:text-white'}`}
                     >
                       {s.name}
                       {activeSection === s.id && (
@@ -134,8 +207,11 @@ export default function ProductDetailPage() {
                 </div>
              </div>
              <div className="flex items-center gap-4">
-                <span className="text-[16px] font-black">¥{product.price.toLocaleString()}</span>
-                <button className="px-6 py-2.5 bg-brand text-white rounded-full text-[13px] font-black shadow-lg shadow-brand/20 hover:scale-105 transition-all">
+                <span className="text-[16px] font-black text-white">¥{productPrice.toLocaleString()}</span>
+                <button 
+                  onClick={handleJoinPlan}
+                  className="px-6 py-2.5 bg-brand text-white rounded-full text-[13px] font-black shadow-lg shadow-brand/20 hover:scale-105 transition-all"
+                >
                   加入我的方案
                 </button>
              </div>
@@ -143,13 +219,33 @@ export default function ProductDetailPage() {
         </motion.div>
       </AnimatePresence>
 
+      <AddToPlanModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        product={product} 
+        onToast={(msg) => setToastMessage(msg)}
+      />
+
+      <Toast 
+        message={toastMessage} 
+        onClear={() => setToastMessage(null)} 
+      />
+
       {/* 1. Hero Product Summary */}
-      <section id="overview" className="max-w-[1720px] mx-auto px-6 md:px-12 pt-40 pb-24">
+      <section id="overview" className="max-w-[1720px] mx-auto px-6 md:px-12 pt-24 pb-24">
+        <Breadcrumbs 
+          isDark={true}
+          items={[
+            { name: '全部产品', path: '/products' },
+            ...(product?.category ? [{ name: product.category, path: `/products?category=${product.category}` }] : []),
+            { name: '产品详情' }
+          ]} 
+        />
         <button 
-          onClick={() => navigate(-1)}
-          className="mb-12 inline-flex items-center gap-3 px-6 py-3 bg-gray-100/50 hover:bg-gray-100 rounded-full text-[14px] font-black transition-all group"
+          onClick={handleBackToPlan}
+          className="mb-12 inline-flex items-center gap-3 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full text-[14px] font-black transition-all group text-white/60 hover:text-white"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 返回
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> {planId ? '返回方案详情' : '返回'}
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
@@ -159,26 +255,26 @@ export default function ProductDetailPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              className="aspect-[4/3] rounded-[64px] overflow-hidden bg-gray-50 border border-gray-100 group relative"
+              className="aspect-[4/3] rounded-[64px] overflow-hidden bg-white/5 border border-white/10 group relative"
             >
               <img 
                 src={product.image} 
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
+                className="w-full h-full object-contain transition-transform duration-1000 group-hover:scale-105" 
                 alt={product.name}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-              <button className="absolute bottom-10 right-10 w-14 h-14 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all">
-                <Maximize2 className="w-6 h-6" />
+              <button className="absolute bottom-10 right-10 w-14 h-14 bg-white/10 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 hover:bg-white/20 transition-all">
+                <Maximize2 className="w-6 h-6 text-white" />
               </button>
             </motion.div>
             
             <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="aspect-square rounded-[32px] overflow-hidden bg-gray-100 border border-gray-100 cursor-pointer hover:border-brand transition-all">
-                   <img src={`/images/products/p${i}.jpg`} className="w-full h-full object-cover" />
+              {[product.image, product.image, product.image].map((img, i) => (
+                <div key={i} className="aspect-square rounded-[32px] overflow-hidden bg-white/5 border border-white/5 cursor-pointer hover:border-brand transition-all flex items-center justify-center p-2">
+                   <img src={img} className="max-w-full max-h-full object-contain" />
                 </div>
               ))}
-              <div className="aspect-square rounded-[32px] bg-gray-100 border border-gray-100 flex items-center justify-center text-gray-400 group cursor-pointer hover:bg-brand/5">
+              <div className="aspect-square rounded-[32px] bg-white/5 border border-white/5 flex items-center justify-center text-white/20 group cursor-pointer hover:bg-brand/5">
                  <Play className="w-8 h-8 group-hover:scale-110 transition-transform" />
               </div>
             </div>
@@ -193,21 +289,25 @@ export default function ProductDetailPage() {
             >
               <div className="flex items-center gap-3 mb-6">
                  <span className="px-5 py-2 bg-brand text-white rounded-full text-[12px] font-black uppercase tracking-widest shadow-lg shadow-brand/20">
-                   适配 P{product.ladderLevel} / {product.space?.[0] || '全屋'}
+                   { [
+                      '极简入门版', '精选入门版', '舒适基础版', '品质进阶版', 
+                      '设计精选版', '格调生活版', '高阶定制版', '典雅至尊版', 
+                      '国际藏家版', '臻选收藏版'
+                   ][(product.ladderLevel || 1) - 1] } / {Array.isArray(product.space) ? product.space[0] : (product.space || '全屋')}
                  </span>
-                 <span className="text-[13px] font-black text-gray-400 uppercase tracking-[0.2em]">{product.style?.[0] || '默认风格'}</span>
+                 <span className="text-[13px] font-black text-white/20 uppercase tracking-[0.2em]">{Array.isArray(product.style) ? product.style[0] : (product.style || '默认风格')}</span>
               </div>
               
-              <h1 className="text-[56px] font-black leading-[1.1] tracking-tight mb-4">{product.name}</h1>
-              <p className="text-[28px] text-gray-400 font-medium mb-10">{product.tagline || "让空间先舒服起来。"}</p>
+              <h1 className="text-[56px] font-black leading-[1.1] tracking-tight mb-4 text-white uppercase">{product.name}</h1>
+              <p className="text-[28px] text-white/40 font-medium mb-10">{product.tagline || (product.category ? `${product.category} · 品质之选` : "让空间先舒服起来。")}</p>
               
-              <div className="text-[48px] font-black mb-12 flex items-baseline gap-2">
-                ¥{product.price.toLocaleString()}
-                <span className="text-[18px] text-gray-400 font-bold uppercase tracking-widest">RMB 起</span>
+              <div className="text-[48px] font-black mb-12 flex items-baseline gap-2 text-white">
+                ¥{productPrice.toLocaleString()}
+                <span className="text-[18px] text-white/20 font-bold uppercase tracking-widest ml-4">RMB 起</span>
               </div>
 
               {/* Bottom Line Bro Judgment */}
-              <div className="p-8 bg-gray-50 rounded-[48px] border border-gray-100 mb-12 relative overflow-hidden group">
+              <div className="p-8 bg-white/5 rounded-[48px] border border-white/5 mb-12 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform">
                   <Sparkles className="w-24 h-24 text-brand" />
                 </div>
@@ -216,8 +316,8 @@ export default function ProductDetailPage() {
                       <div className="w-1.5 h-6 bg-brand rounded-full" />
                       <span className="text-[11px] font-black text-brand uppercase tracking-[0.3em]">底线哥判断</span>
                    </div>
-                   <p className="text-[17px] text-gray-600 leading-relaxed font-medium italic">
-                     “{product.recommendationReason}”
+                   <p className="text-[17px] text-white/60 leading-relaxed font-medium italic">
+                     “{product.recommendationReason || product.description || product.note || "这款产品不仅满足基础功能，更在美学细节上达到了平衡。无论是材质的触感还是视觉的张力，都是方案中的点睛之笔。"}”
                    </p>
                 </div>
               </div>
@@ -236,7 +336,7 @@ export default function ProductDetailPage() {
                  >
                    加入产品库 <Heart className="w-5 h-5" />
                  </button>
-                 <button className="px-8 py-6 bg-gray-50 text-gray-400 rounded-full font-black text-[15px] hover:bg-gray-100 transition-all flex items-center gap-3">
+                 <button className="px-12 py-6 bg-white/5 text-white/40 rounded-full font-black text-[18px] hover:bg-white/10 transition-all flex items-center gap-3">
                    AI 帮我判断 <Sparkles className="w-5 h-5" />
                  </button>
               </div>
@@ -244,18 +344,18 @@ export default function ProductDetailPage() {
               {/* Indicator Mini Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                  {[
-                   { label: '最佳适配', value: 'P1 最佳', icon: <Layers className="w-4 h-4" /> },
-                   { label: '预算影响', value: `${product.budgetImpact?.percentage}%`, icon: <TrendingUp className="w-4 h-4" /> },
-                   { label: '审美提升', value: product.aestheticLift || 'A', icon: <Sparkles className="w-4 h-4" /> },
-                   { label: '落地风险', value: product.landingRisk || '低', icon: <ShieldCheck className="w-4 h-4" /> },
+                   { label: '最佳适配', value: product.ladderLevel ? `P${product.ladderLevel} 最佳` : '全屋最佳', icon: <Layers className="w-4 h-4" /> },
+                   { label: '预算影响', value: product.budgetImpact?.percentage ? `${product.budgetImpact.percentage}%` : '5%', icon: <TrendingUp className="w-4 h-4" /> },
+                   { label: '审美提升', value: product.aestheticLift || 'A+', icon: <Sparkles className="w-4 h-4" /> },
+                   { label: '落地风险', value: product.landingRisk || '极低', icon: <ShieldCheck className="w-4 h-4" /> },
                    { label: '搭配依赖', value: '需地毯/窗帘', icon: <RefreshCw className="w-4 h-4" /> }
                  ].map((stat, i) => (
-                   <div key={i} className="p-4 bg-white border border-gray-100 rounded-[28px] text-center group hover:border-brand/30 transition-all">
-                      <div className="flex justify-center text-gray-300 group-hover:text-brand transition-colors mb-2">
+                   <div key={i} className="p-4 bg-white/5 border border-white/5 rounded-[28px] text-center group hover:border-brand/30 transition-all">
+                      <div className="flex justify-center text-white/20 group-hover:text-brand transition-colors mb-2">
                         {stat.icon}
                       </div>
-                      <p className="text-[10px] text-gray-400 font-black uppercase mb-1">{stat.label}</p>
-                      <p className="text-[14px] font-black">{stat.value}</p>
+                      <p className="text-[10px] text-white/40 font-black uppercase mb-1">{stat.label}</p>
+                      <p className="text-[14px] font-black text-white">{stat.value}</p>
                    </div>
                  ))}
               </div>
@@ -364,7 +464,7 @@ export default function ProductDetailPage() {
                     <div className="grid grid-cols-2 gap-8">
                        <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-100">
                           <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">当前价格</span>
-                          <span className="text-[32px] font-black">¥{product.price.toLocaleString()}</span>
+                          <span className="text-[32px] font-black">¥{productPrice.toLocaleString()}</span>
                        </div>
                        <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-100">
                           <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">同类参考区间</span>
@@ -588,10 +688,10 @@ export default function ProductDetailPage() {
            
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-20 gap-y-12">
               {[
-                { label: '基础信息', items: [['品牌', product.brand], ['名称', product.name], ['品类', product.category]] },
-                { label: '视觉与风格', items: [['设计风格', product.style.join(' / ')], ['适配层级', `P${product.ladderLevel}`], ['主要色系', '米色/灰色']] },
-                { label: '材质说明', items: [['主材', '高支克棉麻'], ['内部填充', '45D 高回弹海绵'], ['框架', '实木多层板']] },
-                { label: '尺寸规格', items: [['外型尺寸', '240 x 105 x 85 cm'], ['坐深/坐高', '65 / 42 cm'], ['净重', '68kg']] },
+                { label: '基础信息', items: [['品牌', product.brand || 'DXG'], ['名称', product.name], ['品类', product.category || '未分类']] },
+                { label: '视觉与风格', items: [['设计风格', Array.isArray(product.style) ? product.style.join(' / ') : (product.style || '默认')], ['适配层级', `P${product.ladderLevel || 1}`], ['主要色系', '米色/灰色']] },
+                { label: '材质说明', items: [['主材', product.material || '高支克棉麻'], ['内部填充', '45D 高回弹海绵'], ['框架', '实木多层板']] },
+                { label: '尺寸规格', items: [['外型尺寸', product.dimensions || '240 x 105 x 85 cm'], ['坐深/坐高', '65 / 42 cm'], ['净重', '68kg']] },
                 { label: '家庭适配', items: [['环保等级', 'ENF 级标准'], ['防霉防潮', '具备'], ['耐磨系数', '≥ 20,000次']] },
                 { label: '交付与服务', items: [['配送策略', '专业师傅上门'], ['质保期限', '框架 5 年 / 面料 1 年'], ['备货周期', '15-20 天']] },
               ].map((group, i) => (
@@ -631,16 +731,16 @@ export default function ProductDetailPage() {
         <motion.div 
           initial={{ y: 100 }}
           animate={{ y: 0 }}
-          className="max-w-[1720px] mx-auto h-24 bg-[#1D1D1F]/90 backdrop-blur-3xl border border-white/5 rounded-[40px] shadow-[0_30px_80px_rgba(0,0,0,0.4)] pointer-events-auto flex items-center justify-between px-12"
+          className="max-w-[1720px] mx-auto h-24 bg-black/90 backdrop-blur-3xl border border-white/5 rounded-[40px] shadow-[0_30px_80px_rgba(0,0,0,0.4)] pointer-events-auto flex items-center justify-between px-12"
         >
-           <div className="flex items-center gap-12">
+           <div className="flex items-center gap-12 text-left">
               <div className="flex flex-col">
-                <span className="text-white font-black text-[28px]">¥{product.price.toLocaleString()}</span>
+                <span className="text-white font-black text-[28px]">¥{productPrice.toLocaleString()}</span>
                 <span className="text-white/40 text-[12px] font-bold uppercase tracking-widest">最终配置以方案为准</span>
               </div>
               <div className="hidden lg:flex items-center gap-4">
                  <div className="px-4 py-1.5 bg-brand/20 border border-brand/20 text-brand rounded-[12px] text-[12px] font-black">
-                   适配 M2 / P1
+                   适配 {Array.isArray(product.space) ? product.space[0] : (product.space || '全屋')}
                  </div>
                  <div className="text-white/40 text-[12px] font-black flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5" /> 空间已确认

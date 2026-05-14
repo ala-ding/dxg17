@@ -89,6 +89,8 @@ export interface PlanProduct {
   material?: string;
   quantity?: number;
   discount?: number; // percentage (e.g., 0.9 for 90%)
+  unitPrice?: number;
+  unit_price?: number;
 }
 
 export interface MoodboardItem {
@@ -134,4 +136,14 @@ export interface UserPlan {
     installationReserve?: number;
   };
   completion: number;
+  // New fields for plan requirements
+  areaRange?: string;
+  budgetLimit?: string;
+  preferredStyle?: string;
+  style?: string;
+  houseType?: string;
+  familySize?: string;
+  livingNeeds?: string;
+  priorities?: string;
+  notes?: string;
 }

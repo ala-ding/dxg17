@@ -6,6 +6,7 @@ import { ModalType, StyleTag } from './types';
 import ModalSystem from './components/ModalSystem';
 import Toast from './components/Toast';
 import { motion, AnimatePresence } from 'motion/react';
+import { planService } from './services/planService';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -14,6 +15,13 @@ import MatchPage from './pages/MatchPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminProductsPage from './pages/AdminProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
+import CheckoutPage from './pages/CheckoutPage';
+import OrdersPage from './pages/OrdersPage';
+import OrderDetailPage from './pages/OrderDetailPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminLeadsPage from './pages/admin/AdminLeadsPage';
+import AdminOrdersPage from './pages/admin/AdminOrdersPage';
+import AdminPlansPage from './pages/admin/AdminPlansPage';
 
 function AppContent() {
   const location = useLocation();
@@ -168,7 +176,19 @@ function AppContent() {
               {/* Action */}
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={() => openModal('newPlan')}
+                  onClick={async () => {
+                    try {
+                      const newPlan = await planService.createPlan({
+                        name: '我的全屋搭配方案',
+                        area_range: '90-120㎡',
+                        style: '现代简约'
+                      });
+                      navigate(`/match`, { state: { openPlanId: newPlan.id } });
+                      showToast('新方案已成功创建');
+                    } catch (e) {
+                      openModal('newPlan');
+                    }
+                  }}
                   className={`h-9 px-5 rounded-full text-[12px] font-bold transition-all hover:scale-105 active:scale-95 ${
                     isLight ? 'bg-black text-white' : 'bg-white text-black'
                   }`}
@@ -209,9 +229,15 @@ function AppContent() {
             <Route path="/product/:id" element={<ProductDetailPage />} />
             <Route path="/my-plans" element={<MatchPage />} />
             <Route path="/match" element={<MatchPage />} />
+            <Route path="/checkout/:planId" element={<CheckoutPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/orders/:id" element={<OrderDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/admin" element={<Navigate to="/admin/products" replace />} />
+            <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/products" element={<AdminProductsPage />} />
+            <Route path="/admin/leads" element={<AdminLeadsPage />} />
+            <Route path="/admin/orders" element={<AdminOrdersPage />} />
+            <Route path="/admin/plans" element={<AdminPlansPage />} />
           </Routes>
         </div>
 
