@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, CheckCircle2, AlertCircle, Sparkles, ArrowRight, Layers, Package, ShoppingBag, Target } from 'lucide-react';
 import { UserPlan } from '../types';
 import { PlanTemplate } from '../data/planTemplates';
 import { pricing } from '../utils/pricing';
+import { membershipService } from '../services/membershipService';
+import { calculateOrderPricing } from '../utils/orderPricing';
+import { UserMembership } from '../types/business';
 
 interface BudgetCompareModalProps {
   open: boolean;
@@ -20,12 +23,40 @@ export default function BudgetCompareModal({
   template,
   onApplyTemplate
 }: BudgetCompareModalProps) {
+  const [membership, setMembership] = useState<UserMembership | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
+
+  useEffect(() => {
+    membershipService.getCurrentUserMembership().then(setMembership);
+  }, []);
+
+  const isProfessional = membership?.member_type === 'professional' || membership?.member_type === 'agent';
+
   const currentItems = (currentPlan.spaces || []).flatMap(s => s.items || []);
-  const currentTotal = pricing.calculateProductTotal(currentItems);
+  
+  const currentPricing = calculateOrderPricing({
+    items: currentItems as any[],
+    membership,
+    serviceMode: isProfessional ? 'self_service' : 'platform_standard'
+  });
+  
+  const currentTotal = currentPricing.estimatedTotal;
   const currentSpaces = Array.from(new Set((currentPlan.spaces || []).map(s => s.name)));
   
   const templateItems = template.items;
-  const templateTotal = templateItems.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
+  
+  const templatePricing = calculateOrderPricing({
+    items: templateItems.map(i => ({ 
+      id: i.id, 
+      quantity: i.quantity, 
+      unit_price: i.unitPrice,
+      product_snapshot: { factory_price: i.unitPrice, standard_service_price: Math.round(i.unitPrice * 1.2) }
+    })) as any[],
+    membership,
+    serviceMode: isProfessional ? 'self_service' : 'platform_standard'
+  });
+
+  const templateTotal = templatePricing.estimatedTotal;
   const templateSpaces = Array.from(new Set(templateItems.map(i => i.space)));
 
   const missingSpaces = templateSpaces.filter(s => !currentSpaces.includes(s));
@@ -33,8 +64,6 @@ export default function BudgetCompareModal({
   const coreCategories = ['沙发', '茶几', '电视柜', '餐桌', '餐椅', '床', '床垫', '窗帘', '灯具', '地毯', '挂画', '绿植', '摆件'];
   const currentCategories = Array.from(new Set(currentItems.map(i => (i as any).category).filter(Boolean)));
   const missingCategories = coreCategories.filter(c => !currentCategories.includes(c));
-
-  const [isApplying, setIsApplying] = React.useState(false);
 
   const handleApply = async () => {
     setIsApplying(true);

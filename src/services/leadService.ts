@@ -46,5 +46,16 @@ export const leadService = {
       return data || [];
     }
     return JSON.parse(localStorage.getItem('dxg_leads') || '[]');
+  },
+
+  async deleteLead(id: string) {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('leads').delete().eq('id', id);
+      if (error) throw error;
+    } else {
+      const leads = JSON.parse(localStorage.getItem('dxg_leads') || '[]');
+      const filtered = leads.filter((l: any) => l.id !== id);
+      localStorage.setItem('dxg_leads', JSON.stringify(filtered));
+    }
   }
 };

@@ -33,6 +33,8 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import { planService } from '../services/planService';
 import { libraryService } from '../services/libraryService';
 import { analyticsService } from '../services/analyticsService';
+import { membershipService } from '../services/membershipService';
+import { UserMembership } from '../types/business';
 import { Plan, Product } from '../types/business';
 import PlanDetailView from '../components/PlanDetailView';
 import Toast from '../components/Toast';
@@ -59,8 +61,13 @@ export default function MatchPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [productLibrary, setProductLibrary] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [membership, setMembership] = useState<UserMembership | null>(null);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; action?: { label: string; onClick: () => void } } | null>(null);
+
+  const showToast = (message: string, action?: { label: string; onClick: () => void }) => {
+    setToast({ message, action });
+  };
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -85,13 +92,21 @@ export default function MatchPage() {
       if (location.state?.openPlanId) {
         window.history.replaceState({}, document.title);
       }
+    } else if (viewState === 'PLAN_DETAIL' && !planIdFromQuery) {
+      // If we were in detail but query param is gone (user clicked breadcrumb), go back to workspace
+      setViewState('WORKSPACE');
+      setCurrentPlanId(null);
     }
   }, [location.state, planIdFromQuery, workspaceTab]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const data = await planService.getPlans();
+      const [m, data] = await Promise.all([
+        membershipService.getCurrentUserMembership(),
+        planService.getPlans()
+      ]);
+      setMembership(m);
       setPlans(data);
       
       if (workspaceTab === 'library') {
@@ -102,6 +117,8 @@ export default function MatchPage() {
       setLoading(false);
     }
   };
+
+  const isProfessional = membership?.member_type === 'professional' || membership?.member_type === 'agent';
 
   const currentPlan = plans.find(p => p.id === currentPlanId);
 
@@ -117,10 +134,10 @@ export default function MatchPage() {
     try {
       await planService.updatePlan(editingPlan.id, patch);
       await loadData();
-      setToastMessage('方案已更新');
+      setToast({ message: '方案已更新' });
       analyticsService.track('update_plan', { plan_id: editingPlan.id });
     } catch (e: any) {
-      setToastMessage(`更新失败: ${e.message || '请稍后重试'}`);
+      setToast({ message: `更新失败: ${e.message || '请稍后重试'}` });
     }
   };
 
@@ -131,12 +148,13 @@ export default function MatchPage() {
       if (currentPlanId === deletingPlan.id) {
         setViewState('WORKSPACE');
         setCurrentPlanId(null);
+        navigate(location.pathname);
       }
       await loadData();
-      setToastMessage('方案已删除');
+      setToast({ message: '方案已删除' });
       analyticsService.track('delete_plan', { plan_id: deletingPlan.id });
     } catch (e: any) {
-      setToastMessage(`删除失败: ${e.message || '请稍后重试'}`);
+      setToast({ message: `删除失败: ${e.message || '请稍后重试'}` });
     } finally {
       setDeletingPlan(null);
     }
@@ -154,12 +172,11 @@ export default function MatchPage() {
       });
       
       setPlans(prev => [newPlan, ...prev]);
-      setCurrentPlanId(newPlan.id);
-      setViewState('PLAN_DETAIL');
-      setToastMessage('新方案已创建');
+      navigate(`?planId=${newPlan.id}`);
+      setToast({ message: '新方案已创建' });
       analyticsService.track('create_plan', { plan_id: newPlan.id });
     } catch (e: any) {
-      setToastMessage(`创建失败: ${e.message}`);
+      setToast({ message: `创建失败: ${e.message}` });
     }
   };
 
@@ -208,8 +225,7 @@ export default function MatchPage() {
             <div 
               key={plan.id}
               onClick={() => {
-                setCurrentPlanId(plan.id);
-                setViewState('PLAN_DETAIL');
+                navigate(`?planId=${plan.id}`);
               }}
               className="bg-[#1A1A1A] border border-white/5 rounded-[40px] p-8 text-left hover:border-white/20 transition-all cursor-pointer group shadow-2xl relative overflow-hidden"
             >
@@ -276,11 +292,14 @@ export default function MatchPage() {
                 onClick={() => navigate(`/product/${item.id}`)}
               >
                 <div className="aspect-square bg-white rounded-2xl p-4 mb-4">
-                  <img src={item.image} className="w-full h-full object-contain" alt="" />
+                  <img src={item.image || null} className="w-full h-full object-contain" alt={item.name} />
                 </div>
                 <p className="text-[14px] font-black text-white group-hover:text-brand transition-colors mb-1 truncate">{item.name}</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-[12px] font-bold text-brand">¥{item.price.toLocaleString()}</p>
+                  <div className="flex flex-col">
+                    <p className="text-[12px] font-bold text-brand">¥{(isProfessional ? (item.factory_price || item.price) : (item.standard_service_price || Math.round(item.price * 1.2))).toLocaleString()}</p>
+                    <p className="text-[8px] text-white/20 font-black uppercase tracking-widest">{isProfessional ? '出厂价' : '标准服务价'}</p>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={(e) => {
@@ -297,7 +316,7 @@ export default function MatchPage() {
                         e.stopPropagation();
                         await libraryService.removeProductFromLibrary(item.id);
                         setProductLibrary(prev => prev.filter(i => i.id !== item.id));
-                        setToastMessage('已从灵感库移除');
+                        setToast({ message: '已从灵感库移除' });
                         analyticsService.track('remove_from_library', { product_id: item.id });
                       }}
                       className="p-1 text-white/10 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
@@ -317,7 +336,7 @@ export default function MatchPage() {
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           product={selectedProduct}
-          onToast={(msg) => setToastMessage(msg)}
+          onToast={(msg) => showToast(msg)}
         />
       )}
     </div>
@@ -331,7 +350,7 @@ export default function MatchPage() {
           className="mb-2"
           items={[
             { name: '个人中心', path: '/profile' },
-            { name: '我的方案', path: viewState === 'PLAN_DETAIL' ? '/my-plans' : undefined },
+            { name: '我的方案', path: viewState === 'PLAN_DETAIL' ? location.pathname : undefined },
             ...(viewState === 'PLAN_DETAIL' && currentPlan ? [{ name: currentPlan.name }] : [])
           ]} 
         />
@@ -357,19 +376,11 @@ export default function MatchPage() {
             exit={{ opacity: 0, scale: 0.98 }}
             className="w-full max-w-7xl mx-auto px-4"
           >
-            <div className="mb-8">
-              <button 
-                onClick={() => setViewState('WORKSPACE')}
-                className="flex items-center gap-2 text-white/40 hover:text-white transition-colors font-bold text-[13px]"
-              >
-                <ArrowLeft className="w-4 h-4" /> 返回工作台
-              </button>
-            </div>
             <ErrorBoundary onReset={loadData}>
               <PlanDetailView 
                 plan={currentPlan as any} 
                 onUpdate={loadData}
-                onToast={(msg) => setToastMessage(msg)}
+                onToast={(msg) => showToast(msg)}
                 onProductClick={(product, tab) => {
                   const productId = product.product_id || product.productId || product.product_snapshot?.id || product.id;
                   navigate(`/product/${productId}`, {
@@ -413,14 +424,16 @@ export default function MatchPage() {
         onClose={() => setIsAddModalOpen(false)}
         product={selectedProduct}
         onAdded={(planName) => {
-          setToastMessage(`已添加到方案: ${planName}`);
+          showToast(`已添加到方案: ${planName}`);
           loadData(); // Refresh and potentially clear status
         }}
       />
 
       <Toast 
-        message={toastMessage} 
-        onClear={() => setToastMessage(null)} 
+        message={toast?.message || null} 
+        action={toast?.action}
+        duration={5000}
+        onClear={() => setToast(null)} 
       />
     </main>
   );

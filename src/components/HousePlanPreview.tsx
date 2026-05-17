@@ -374,7 +374,13 @@ export default function HousePlanPreview({
                     onClick={() => togglePanel('plan')}
                     className="px-8 h-12 bg-white text-black rounded-full text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center gap-2"
                   >
-                    查看方案 <ChevronRight className="w-4 h-4" />
+                    查看方案概览 <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => setShowChecklistModal(true)}
+                    className="px-8 h-12 bg-brand text-white rounded-full text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center gap-2"
+                  >
+                    查看完整清单 <ShoppingBag className="w-4 h-4" />
                   </button>
                   <div className="relative group/per">
                     <button 
@@ -538,7 +544,7 @@ export default function HousePlanPreview({
                className="w-full max-w-[900px] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[48px] overflow-hidden shadow-2xl p-10 flex gap-10"
              >
                 <div className="w-[360px] h-full rounded-[32px] overflow-hidden border border-white/10 shrink-0">
-                   <img src={SCENE_IMAGES[currentStyle][currentLevel].image} className="w-full h-full object-cover" alt="Plan" />
+                   <img src={SCENE_IMAGES[currentStyle][currentLevel].image || null} className="w-full h-full object-cover" alt="Plan" />
                 </div>
                 
                 <div className="flex-1 flex flex-col justify-between overflow-hidden">

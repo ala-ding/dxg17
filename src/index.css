@@ -76,4 +76,22 @@
   color: #00B5AD;
 }
 
+/* Breadcrumb Styles */
+.breadcrumb-container a {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.42) !important;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-container a:hover {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.breadcrumb-current {
+  color: rgba(255, 255, 255, 0.62) !important;
+  cursor: default;
+  pointer-events: none;
+}
+
 

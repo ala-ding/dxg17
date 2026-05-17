@@ -22,7 +22,7 @@ export default function Breadcrumbs({ items, isDark = false, className = "" }: B
   const activeColor = isDark ? 'text-white/62' : 'text-black/58';
 
   return (
-    <nav className={`flex items-center gap-2 text-[13px] leading-none mt-9 mb-8 flex-wrap ${className}`}>
+    <nav className={`flex items-center gap-2 text-[13px] leading-none mt-9 mb-8 flex-wrap breadcrumb-container ${className}`}>
       <Link 
         to="/" 
         className={`${textColor} ${hoverColor} transition-all duration-200 shrink-0`}
@@ -54,7 +54,7 @@ export default function Breadcrumbs({ items, isDark = false, className = "" }: B
                   {item.name}
                 </Link>
               ) : (
-                <span className={`${activeColor} font-medium whitespace-nowrap`}>
+                <span className={`${activeColor} breadcrumb-current font-medium whitespace-nowrap`}>
                   {item.name}
                 </span>
               )}

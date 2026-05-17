@@ -18,10 +18,21 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
+import MembershipPage from './pages/MembershipPage';
+import CustomServicePage from './pages/CustomServicePage';
+import ServiceSecurityPage from './pages/ServiceSecurityPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminMembershipsPage from './pages/admin/AdminMembershipsPage';
+import AdminPermissionsPage from './pages/admin/AdminPermissionsPage';
+import AdminCustomServicesPage from './pages/admin/AdminCustomServicesPage';
+import AdminSuppliersPage from './pages/admin/AdminSuppliersPage';
 import AdminLeadsPage from './pages/admin/AdminLeadsPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminPlansPage from './pages/admin/AdminPlansPage';
+
+import MembershipSuccessPage from './pages/MembershipSuccessPage';
+import MembershipCheckoutPage from './pages/MembershipCheckoutPage';
+import AdminGroupBuyRulesPage from './pages/admin/AdminGroupBuyRulesPage';
 
 function AppContent() {
   const location = useLocation();
@@ -112,7 +123,9 @@ function AppContent() {
   const navItems = [
     { label: '所有产品', path: '/products' },
     { label: '全屋灵感', path: '/ladder' },
+    { label: '服务与保障', path: '/security' },
     { label: '我的方案', path: '/my-plans' },
+    { label: '会员权益', path: '/membership' },
   ];
 
   const isAdminArea = location.pathname.startsWith('/admin');
@@ -183,7 +196,7 @@ function AppContent() {
                         area_range: '90-120㎡',
                         style: '现代简约'
                       });
-                      navigate(`/match`, { state: { openPlanId: newPlan.id } });
+                      navigate(`/my-plans?planId=${newPlan.id}`);
                       showToast('新方案已成功创建');
                     } catch (e) {
                       openModal('newPlan');
@@ -197,9 +210,10 @@ function AppContent() {
                 </button>
                 <Link 
                   to="/profile"
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border ${isLight ? 'bg-black/5 border-black/5 text-black hover:bg-black/10' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                  className={`h-9 px-3 rounded-full flex items-center justify-center gap-2 transition-all border ${isLight ? 'bg-black/5 border-black/5 text-black hover:bg-black/10' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
                 >
-                  <User className="w-5 h-5" />
+                  <User className="w-4 h-4" />
+                  <span className="text-[12px] font-bold">个人中心</span>
                 </Link>
               </div>
             </header>
@@ -233,11 +247,21 @@ function AppContent() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/orders/:id" element={<OrderDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/membership" element={<MembershipPage />} />
+            <Route path="/membership/checkout" element={<MembershipCheckoutPage />} />
+            <Route path="/membership/success" element={<MembershipSuccessPage />} />
+            <Route path="/custom-service" element={<CustomServicePage />} />
+            <Route path="/security" element={<ServiceSecurityPage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/products" element={<AdminProductsPage />} />
             <Route path="/admin/leads" element={<AdminLeadsPage />} />
             <Route path="/admin/orders" element={<AdminOrdersPage />} />
             <Route path="/admin/plans" element={<AdminPlansPage />} />
+            <Route path="/admin/group-buy-rules" element={<AdminGroupBuyRulesPage />} />
+            <Route path="/admin/memberships" element={<AdminMembershipsPage />} />
+            <Route path="/admin/permissions" element={<AdminPermissionsPage />} />
+            <Route path="/admin/custom-services" element={<AdminCustomServicesPage />} />
+            <Route path="/admin/suppliers" element={<AdminSuppliersPage />} />
           </Routes>
         </div>
 

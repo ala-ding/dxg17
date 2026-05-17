@@ -63,6 +63,8 @@ export const productService = {
   getFallbackProducts(filters?: any): Product[] {
     let filtered = MOCK_PRODUCTS.map(p => ({
       ...p,
+      factory_price: p.price, // Base factory price
+      standard_service_price: Math.round(p.price * 1.2), // Standard platform price (20% up)
       status: 'active' as any,
       created_at: new Date().toISOString(),
       specs: {},
@@ -147,6 +149,8 @@ export const productService = {
       brand: (p as any).brand || 'DXG',
       category: p.category,
       price: p.price,
+      factory_price: p.price,
+      standard_service_price: Math.round(p.price * 1.2),
       image: p.image,
       space: (p as any).space ? [(p as any).space] : [],
       style: (p as any).style ? [(p as any).style] : [],

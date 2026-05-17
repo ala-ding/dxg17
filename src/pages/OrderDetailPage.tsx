@@ -147,7 +147,7 @@ export default function OrderDetailPage() {
                     {order.items?.length > 0 ? order.items.map((item: any) => (
                       <div key={item.id} className="flex items-center gap-6 p-6 bg-white/[0.02] border border-white/5 rounded-3xl group">
                          <div className="w-24 h-24 bg-white rounded-2xl p-3 shrink-0 flex items-center justify-center border border-white/5 group-hover:scale-105 transition-transform">
-                            <img src={item.product_snapshot?.image} className="w-full h-full object-contain" alt="" />
+                            <img src={item.product_snapshot?.image || null} className="w-full h-full object-contain" alt={item.name} />
                          </div>
                          <div className="flex-1 text-left">
                             <div className="flex justify-between items-start mb-2">

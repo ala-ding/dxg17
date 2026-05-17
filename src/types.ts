@@ -74,6 +74,8 @@ export interface PlanSpace {
 
 export interface PlanProduct {
   id: string;
+  product_id?: string;
+  vendor_id?: string;
   name: string;
   price: number;
   type: '必买' | '建议' | '可后补';
@@ -91,6 +93,7 @@ export interface PlanProduct {
   discount?: number; // percentage (e.g., 0.9 for 90%)
   unitPrice?: number;
   unit_price?: number;
+  product_snapshot?: any;
 }
 
 export interface MoodboardItem {

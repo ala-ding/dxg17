@@ -61,15 +61,10 @@ export default function AdminProductsPage() {
     setIsEditing(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('确定要删除这个产品吗？')) {
-      try {
-        await productService.deleteProduct(id);
-        setProducts(prev => prev.filter(p => p.id !== id));
-        setToastMessage('删除成功');
-      } catch (e: any) {
-        setToastMessage(`删除失败: ${e.message}`);
-      }
+  const handleDelete = (id: string) => {
+    if (confirm('确定要将该产品从当前列表中移除吗？')) {
+      setProducts(prev => prev.filter(p => p.id !== id));
+      setToastMessage('已从当前列表移除');
     }
   };
 
@@ -204,7 +199,8 @@ export default function AdminProductsPage() {
                 <tr className="border-b border-gray-50">
                   <th className="px-8 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-widest">产品信息</th>
                   <th className="px-8 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-widest">分类/品牌</th>
-                  <th className="px-8 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-widest">价格</th>
+                  <th className="px-8 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-widest">出厂价 / 标准价</th>
+                  <th className="px-8 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-widest">集采权益</th>
                   <th className="px-8 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-widest">配置方案</th>
                   <th className="px-8 py-5 text-left text-[11px] font-black text-gray-400 uppercase tracking-widest">操作</th>
                 </tr>
@@ -215,7 +211,7 @@ export default function AdminProductsPage() {
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
-                          <img src={p.image} className="w-full h-full object-cover" alt="" />
+                          <img src={p.image || null} className="w-full h-full object-cover" alt={p.name} />
                         </div>
                         <div>
                           <p className="text-[15px] font-black text-gray-800 line-clamp-1">{p.name}</p>
@@ -227,9 +223,22 @@ export default function AdminProductsPage() {
                       <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[11px] font-bold rounded-lg mr-2">{p.category}</span>
                       <span className="text-[14px] text-gray-600 font-medium">{p.brand}</span>
                     </td>
-                    <td className="px-8 py-5">
-                      <p className="text-[16px] font-black text-brand">¥{p.price.toLocaleString()}</p>
-                    </td>
+                      <td className="px-8 py-5">
+                        <div className="flex flex-col gap-0.5">
+                          <p className="text-[15px] font-black text-gray-800">¥{(p.factory_price || p.price).toLocaleString()}</p>
+                          <p className="text-[11px] font-bold text-brand italic">S: ¥{(p.standard_service_price || (p.factory_price || p.price) * 1.2).toLocaleString()}</p>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        {p.allow_group_buy_discount ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[14px] font-black text-amber-600">等级: {p.group_buy_level || 'A'}</span>
+                            <span className="text-[11px] font-bold text-amber-600/60 leading-none">优惠: {p.estimated_discount_min || 5}%-{p.estimated_discount_max || 15}%</span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-gray-300 font-bold uppercase tracking-widest">未开启集采</span>
+                        )}
+                      </td>
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-2">
                         <div className="w-10 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center text-[12px] font-black">
@@ -318,24 +327,107 @@ export default function AdminProductsPage() {
                               </select>
                             </div>
                             <div className="flex flex-col gap-2">
-                              <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">价格 (元)</label>
+                              <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">标准服务价 (元)</label>
                               <input 
                                 type="number" 
                                 required
-                                value={editProduct?.price || 0} 
-                                onChange={e => setEditProduct(prev => ({ ...prev, price: Number(e.target.value) }))}
+                                value={editProduct?.standard_service_price || editProduct?.price || 0} 
+                                onChange={e => setEditProduct(prev => ({ ...prev, standard_service_price: Number(e.target.value), price: Number(e.target.value) }))}
                                 className="bg-gray-50 border-none h-12 px-4 rounded-xl text-[14px] font-bold outline-none focus:ring-2 focus:ring-brand/20 transition-all" 
                               />
                             </div>
                          </div>
+                         
+                         <div className="bg-amber-50/50 rounded-[32px] p-6 border border-amber-100 flex flex-col gap-6">
+                           <div className="flex items-center justify-between">
+                             <label className="text-[14px] font-black text-amber-700 flex items-center gap-2">
+                               <Database className="w-4 h-4" /> 专业会员集采设置
+                             </label>
+                             <div className="flex items-center gap-2">
+                               <span className="text-[11px] font-bold text-amber-600 uppercase tracking-widest">开启集采折扣</span>
+                               <button 
+                                 type="button"
+                                 onClick={() => setEditProduct(prev => ({ ...prev, allow_group_buy_discount: !prev?.allow_group_buy_discount }))}
+                                 className={`w-10 h-6 rounded-full transition-all relative ${editProduct?.allow_group_buy_discount ? 'bg-amber-500' : 'bg-gray-200'}`}
+                               >
+                                 <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${editProduct?.allow_group_buy_discount ? 'left-5' : 'left-1'}`} />
+                               </button>
+                             </div>
+                           </div>
+                           
+                           {editProduct?.allow_group_buy_discount && (
+                             <div className="grid grid-cols-2 gap-4 text-left animate-in fade-in duration-300">
+                               <div className="flex flex-col gap-2">
+                                 <label className="text-[11px] font-black text-amber-600 uppercase tracking-widest">集采等级</label>
+                                 <select 
+                                   value={editProduct?.group_buy_level || 'A'} 
+                                   onChange={e => setEditProduct(prev => ({ ...prev, group_buy_level: e.target.value }))}
+                                   className="bg-white border-none h-10 px-4 rounded-xl text-[13px] font-bold outline-none shadow-sm"
+                                 >
+                                   <option value="A">A级 (全国统配)</option>
+                                   <option value="B">B级 (区域集采)</option>
+                                   <option value="C">C级 (单项协议)</option>
+                                 </select>
+                               </div>
+                               <div className="grid grid-cols-2 gap-2">
+                                 <div className="flex flex-col gap-2">
+                                   <label className="text-[11px] font-black text-amber-600 uppercase tracking-widest">最小优惠 %</label>
+                                   <input 
+                                     type="number" 
+                                     value={editProduct?.estimated_discount_min || 5} 
+                                     onChange={e => setEditProduct(prev => ({ ...prev, estimated_discount_min: Number(e.target.value) }))}
+                                     className="bg-white border-none h-10 px-4 rounded-xl text-[13px] font-bold outline-none shadow-sm" 
+                                   />
+                                 </div>
+                                 <div className="flex flex-col gap-2">
+                                   <label className="text-[11px] font-black text-amber-600 uppercase tracking-widest">最大优惠 %</label>
+                                   <input 
+                                     type="number" 
+                                     value={editProduct?.estimated_discount_max || 15} 
+                                     onChange={e => setEditProduct(prev => ({ ...prev, estimated_discount_max: Number(e.target.value) }))}
+                                     className="bg-white border-none h-10 px-4 rounded-xl text-[13px] font-bold outline-none shadow-sm" 
+                                   />
+                                 </div>
+                               </div>
+                               <div className="col-span-2 flex flex-col gap-2">
+                                 <label className="text-[11px] font-black text-amber-600 uppercase tracking-widest">集采规则说明 (专业可见)</label>
+                                 <textarea 
+                                   value={editProduct?.tier_purchase_rules || ''} 
+                                   onChange={e => setEditProduct(prev => ({ ...prev, tier_purchase_rules: e.target.value }))}
+                                   placeholder="例如：1件起享基础折扣；5件以上另议..."
+                                   className="bg-white border-none p-3 rounded-xl text-[12px] font-medium h-20 resize-none outline-none shadow-sm" 
+                                 />
+                               </div>
+                               <div className="col-span-2 flex flex-col gap-2">
+                                 <label className="text-[11px] font-black text-amber-600 uppercase tracking-widest">专业采购备注 (专业可见)</label>
+                                 <textarea 
+                                   value={editProduct?.professional_note || ''} 
+                                   onChange={e => setEditProduct(prev => ({ ...prev, professional_note: e.target.value }))}
+                                   placeholder="仅限专业认证会员。支持异地打样..."
+                                   className="bg-white border-none p-3 rounded-xl text-[12px] font-medium h-20 resize-none outline-none shadow-sm italic" 
+                                 />
+                               </div>
+                             </div>
+                           )}
+                         </div>
                          <div className="flex flex-col gap-2 text-left">
-                           <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">品牌</label>
-                           <input 
-                            type="text" 
-                            value={editProduct?.brand || ''} 
-                            onChange={e => setEditProduct(prev => ({ ...prev, brand: e.target.value }))}
-                            className="bg-gray-50 border-none h-12 px-4 rounded-xl text-[14px] font-bold outline-none" 
-                           />
+                           <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">品牌 / 供应商</label>
+                           <div className="grid grid-cols-2 gap-2">
+                             <input 
+                               type="text" 
+                               value={editProduct?.brand || ''} 
+                               onChange={e => setEditProduct(prev => ({ ...prev, brand: e.target.value }))}
+                               placeholder="显示品牌"
+                               className="bg-gray-50 border-none h-12 px-4 rounded-xl text-[14px] font-bold outline-none" 
+                             />
+                             <input 
+                               type="text" 
+                               value={editProduct?.supplier_id || ''} 
+                               onChange={e => setEditProduct(prev => ({ ...prev, supplier_id: e.target.value }))}
+                               placeholder="供应商ID (后台关联)"
+                               className="bg-zinc-50 border-none h-12 px-4 rounded-xl text-[14px] font-bold outline-none" 
+                             />
+                           </div>
                          </div>
                        </div>
  

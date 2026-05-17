@@ -32,6 +32,9 @@ export const planService = {
         await this.addProductToPlan(plan.id, item, item.quantity, item.space);
       }
 
+      // Cleanup any potential duplicates added during creation (though addProductToPlan should handle it)
+      await this.cleanupDuplicateItems(plan.id);
+
       // Refresh and return
       const finalPlan = await this.getPlanById(plan.id);
       if (!finalPlan) throw new Error('Failed to retrieve created plan');
@@ -158,6 +161,8 @@ export const planService = {
 
   async addProductToPlan(planId: string, product: any, quantity: number = 1, space?: string) {
     if (!product) return;
+    const productId = product.productId || product.id || (product.product_snapshot && product.product_snapshot.id);
+    
     if (isSupabaseConfigured && supabase) {
       const price = Number(
         product.price ?? 
@@ -169,31 +174,157 @@ export const planService = {
       );
       const qty = Number(quantity ?? product.quantity ?? 1);
 
-      const item: Partial<PlanItem> = {
-        plan_id: planId,
-        product_id: product.productId || product.id,
-        product_snapshot: {
-          ...product,
-          id: product.productId || product.id,
-          name: product.name,
-          category: product.category,
-          price: price,
-          image: product.image ?? product.product?.image ?? '',
-          brand: product.brand ?? product.product?.brand ?? 'DXG Select'
-        },
-        quantity: qty,
-        unit_price: price,
-        subtotal: price * qty,
-        space: space || '默认空间'
-      };
-      
-      const { error } = await supabase.from('plan_items').insert(item);
-      if (error) throw error;
+      // Check if product already exists in this plan
+      const { data: existingItems } = await supabase
+        .from('plan_items')
+        .select('*')
+        .eq('plan_id', planId)
+        .eq('product_id', productId);
+
+      if (existingItems && existingItems.length > 0) {
+        // Update existing item
+        const existing = existingItems[0];
+        const newQty = (existing.quantity || 0) + qty;
+        const { error } = await supabase
+          .from('plan_items')
+          .update({ 
+            quantity: newQty, 
+            subtotal: price * newQty,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+        if (error) throw error;
+        
+        // If there were multiple duplicates, cleanup the rest
+        if (existingItems.length > 1) {
+          await this.cleanupDuplicateItems(planId);
+        }
+      } else {
+        // Insert new item
+        const item: Partial<PlanItem> = {
+          plan_id: planId,
+          product_id: productId,
+          product_snapshot: {
+            ...product,
+            id: productId,
+            name: product.name,
+            category: product.category,
+            price: price,
+            image: product.image ?? product.product?.image ?? '',
+            brand: product.brand ?? product.product?.brand ?? 'DXG Select'
+          },
+          quantity: qty,
+          unit_price: price,
+          subtotal: price * qty,
+          space: space || '默认空间'
+        };
+        
+        const { error } = await supabase.from('plan_items').insert(item);
+        if (error) throw error;
+      }
       
       await this.calculatePlanTotals(planId);
       return;
     }
     planStorage.addProductToPlan(planId, product, quantity, space);
+  },
+
+  async cleanupDuplicateItems(planId: string) {
+    if (isSupabaseConfigured && supabase) {
+      const { data: items } = await supabase.from('plan_items').select('*').eq('plan_id', planId);
+      if (!items) return;
+
+      const groups = new Map<string, any[]>();
+      items.forEach(item => {
+        const key = item.product_id;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(item);
+      });
+
+      for (const [productId, dupes] of groups.entries()) {
+        if (dupes.length > 1) {
+          const totalQty = dupes.reduce((sum, d) => sum + (d.quantity || 1), 0);
+          const first = dupes[0];
+          const price = first.unit_price || first.price || 0;
+
+          // Update first one with total quantity
+          await supabase.from('plan_items').update({
+            quantity: totalQty,
+            subtotal: price * totalQty
+          }).eq('id', first.id);
+
+          // Delete others
+          const idsToDelete = dupes.slice(1).map(d => d.id);
+          await supabase.from('plan_items').delete().in('id', idsToDelete);
+        }
+      }
+    } else {
+      // Local storage cleanup
+      const plans = planStorage.getPlans();
+      const updatedPlans = plans.map(p => {
+        if (p.id === planId) {
+          const allItems: any[] = [];
+          p.spaces.forEach(s => {
+            if (s.items) allItems.push(...s.items.filter(Boolean));
+          });
+
+          const groups = new Map<string, any[]>();
+          allItems.forEach((it: any) => {
+            const pid = it.product_id || it.productId || it.id;
+            if (!groups.has(pid)) groups.set(pid, []);
+            groups.get(pid)!.push(it);
+          });
+
+          // Re-evaluate spaces assuming we keep products in their first added space
+          const newSpaces = p.spaces.map(s => ({ ...s, items: [] as any[] }));
+          
+          groups.forEach((dupes, pid) => {
+            const first = dupes[0];
+            // Safe merging: use unique items by ID if possible, otherwise sum up
+            const uniqueById = new Map<string, any>();
+            dupes.forEach(d => {
+              if (d.id) uniqueById.set(d.id, d);
+              else uniqueById.set(`temp_${Math.random()}`, d);
+            });
+            
+            const itemsToSum = Array.from(uniqueById.values());
+            const totalQty = itemsToSum.reduce((sum, d) => sum + (Number(d.quantity) || 1), 0);
+            const price = Number(first.price || first.unitPrice || first.unit_price || 0);
+            
+            const mergedItem = {
+              ...first,
+              quantity: totalQty,
+              subtotal: price * totalQty
+            };
+
+            // Fix the space allocation logic
+            const targetSpaceName = first.space || (p.spaces && p.spaces[0] && p.spaces[0].name) || "默认空间";
+            const spaceIdx = newSpaces.findIndex(ns => ns.name === targetSpaceName);
+            const finalSpaceIdx = spaceIdx === -1 ? 0 : spaceIdx;
+            newSpaces[finalSpaceIdx].items.push(mergedItem);
+          });
+
+          return { ...p, spaces: newSpaces };
+        }
+        return p;
+      });
+      planStorage.savePlans(updatedPlans);
+    }
+    await this.calculatePlanTotals(planId);
+  },
+
+  async removeProductFromPlan(planId: string, productId: string) {
+    if (isSupabaseConfigured && supabase) {
+      // For Supabase, the productId in plan_items is the primary key of that specific record in the relationship
+      // but in local storage we use the product id.
+      // We need to be careful. In PlanDetailView, item.id is passed.
+      const { error } = await supabase.from('plan_items').delete().eq('id', productId);
+      if (error) throw error;
+      
+      await this.calculatePlanTotals(planId);
+      return;
+    }
+    planStorage.removeProductFromPlan(planId, productId);
   },
 
   async calculatePlanTotals(planId: string) {

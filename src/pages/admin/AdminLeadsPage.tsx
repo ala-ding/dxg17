@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 
   Users, ArrowLeft, MessageSquare, CheckCircle2, 
-  XCircle, Filter, Search, MoreHorizontal, MapPin
+  Trash2, Filter, Search, MoreHorizontal, MapPin
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { leadService } from '../../services/leadService';
@@ -48,6 +48,12 @@ export default function AdminLeadsPage() {
     } catch (e) {
       setToastMessage('操作失败');
     }
+  };
+
+  const handleDeleteLead = (id: string) => {
+    if (!confirm('确定要将此记录从当前列表中移除吗？')) return;
+    setLeads(prev => prev.filter(l => l.id !== id));
+    setToastMessage('已从当前列表移除');
   };
 
   const getStatusStyle = (status: string) => {
@@ -146,7 +152,7 @@ export default function AdminLeadsPage() {
                          <div className="flex items-center justify-center gap-3">
                             <button onClick={() => handleUpdateStatus(l.id, 'contacted')} className="w-10 h-10 rounded-lg bg-white/5 text-white/40 hover:bg-brand/10 hover:text-brand transition-all flex items-center justify-center"><MessageSquare className="w-5 h-5" /></button>
                             <button onClick={() => handleUpdateStatus(l.id, 'converted')} className="w-10 h-10 rounded-lg bg-white/5 text-white/40 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all flex items-center justify-center"><CheckCircle2 className="w-5 h-5" /></button>
-                            <button onClick={() => handleUpdateStatus(l.id, 'lost')} className="w-10 h-10 rounded-lg bg-white/5 text-white/40 hover:bg-red-500/10 hover:text-red-500 transition-all flex items-center justify-center"><XCircle className="w-5 h-5" /></button>
+                            <button onClick={() => handleDeleteLead(l.id)} className="w-10 h-10 rounded-lg bg-white/5 text-white/40 hover:bg-red-500/10 hover:text-red-500 transition-all flex items-center justify-center"><Trash2 className="w-5 h-5" /></button>
                          </div>
                       </td>
                    </tr>

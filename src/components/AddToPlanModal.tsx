@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Plus, ShoppingBag, Check, ChevronRight, Layout, LayoutGrid } from 'lucide-react';
 import { planStorage } from '../utils/planStorage';
+import { planService } from '../services/planService';
 import { pricing } from '../utils/pricing';
 import { UserPlan } from '../types';
 
@@ -12,36 +13,70 @@ interface AddToPlanModalProps {
   onSuccess?: (planId: string) => void;
   onToast?: (msg: string) => void;
   onAdded?: (planName: string) => void;
+  prioritizedPlanId?: string;
 }
 
-export default function AddToPlanModal({ isOpen, onClose, product, onSuccess, onToast, onAdded }: AddToPlanModalProps) {
+export default function AddToPlanModal({ isOpen, onClose, product, onSuccess, onToast, onAdded, prioritizedPlanId }: AddToPlanModalProps) {
   const [plans, setPlans] = useState<UserPlan[]>([]);
   const [view, setView] = useState<'selection' | 'create'>('selection');
   const [newPlanName, setNewPlanName] = useState('我的全屋方案');
 
+  const [isAdding, setIsAdding] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
-      setPlans(planStorage.getPlans());
+      const allPlans = planStorage.getPlans();
+      if (prioritizedPlanId) {
+        const prioritized = allPlans.find(p => p.id === prioritizedPlanId);
+        const others = allPlans.filter(p => p.id !== prioritizedPlanId);
+        setPlans(prioritized ? [prioritized, ...others] : allPlans);
+      } else {
+        setPlans(allPlans);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, prioritizedPlanId]);
 
-  const handleAddToExisting = (planId: string) => {
-    planStorage.addProductToPlan(planId, product);
-    const plan = plans.find(p => p.id === planId);
-    onToast?.(`已加入方案：“${plan?.name || '我的方案'}”`);
-    onAdded?.(plan?.name || '我的方案');
-    onSuccess?.(planId);
-    onClose();
+  const handleAddToExisting = async (planId: string) => {
+    if (isAdding) return;
+    setIsAdding(planId);
+    try {
+      const plan = plans.find(p => p.id === planId);
+      const allItemsBefore = (plan?.spaces || []).flatMap(s => s.items || []).filter(Boolean);
+      const existingItem = allItemsBefore.find(i => (i.product_id || i.id) === (product.productId || product.id));
+      
+      await planService.addProductToPlan(planId, product);
+      
+      const newQty = (existingItem?.quantity || 0) + 1;
+      const message = existingItem 
+        ? `数量 +1，当前共 ${newQty} 件`
+        : `已加入方案：“${plan?.name || '我的方案'}”`;
+      
+      onToast?.(message);
+      onAdded?.(plan?.name || '我的方案');
+      onSuccess?.(planId);
+      onClose();
+    } catch (e: any) {
+      onToast?.(`添加失败: ${e.message}`);
+    } finally {
+      setIsAdding(null);
+    }
   };
 
-  const handleCreateAndAdd = () => {
-    if (!newPlanName.trim()) return;
-    const newPlan = planStorage.createPlan({ name: newPlanName });
-    planStorage.addProductToPlan(newPlan.id, product);
-    onToast?.(`已新建方案并加入：“${newPlan.name}”`);
-    onAdded?.(newPlan.name);
-    onSuccess?.(newPlan.id);
-    onClose();
+  const handleCreateAndAdd = async () => {
+    if (!newPlanName.trim() || isAdding) return;
+    setIsAdding('new');
+    try {
+      const newPlan = planStorage.createPlan({ name: newPlanName });
+      await planService.addProductToPlan(newPlan.id, product);
+      onToast?.(`已新建方案并加入：“${newPlan.name}”`);
+      onAdded?.(newPlan.name);
+      onSuccess?.(newPlan.id);
+      onClose();
+    } catch (e: any) {
+      onToast?.(`创建失败: ${e.message}`);
+    } finally {
+      setIsAdding(null);
+    }
   };
 
   if (!isOpen || !product) return null;
@@ -111,22 +146,32 @@ export default function AddToPlanModal({ isOpen, onClose, product, onSuccess, on
                          <button 
                            key={plan.id}
                            onClick={() => handleAddToExisting(plan.id)}
-                           className="w-full bg-[#1A1A1A] hover:bg-white/5 border border-white/5 p-4 py-5 rounded-2xl transition-all flex items-center justify-between group"
+                           disabled={!!isAdding}
+                           className={`w-full bg-[#1A1A1A] hover:bg-white/5 border p-4 py-5 rounded-2xl transition-all flex items-center justify-between group ${isAdding === plan.id ? 'opacity-50 cursor-wait' : ''} ${plan.id === prioritizedPlanId ? 'border-brand/50 ring-1 ring-brand/20 bg-brand/5' : 'border-white/5'}`}
                          >
                             <div className="flex items-center gap-4 text-left">
-                               <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/20 group-hover:text-brand transition-colors">
-                                  <Layout className="w-5 h-5" />
+                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${plan.id === prioritizedPlanId ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'bg-white/5 text-white/20 group-hover:text-brand'}`}>
+                                  {isAdding === plan.id ? (
+                                    <div className={`w-4 h-4 border-2 border-t-transparent rounded-full animate-spin ${plan.id === prioritizedPlanId ? 'border-white' : 'border-brand'}`} />
+                                  ) : (
+                                    <Layout className="w-5 h-5" />
+                                  )}
                                </div>
                                <div>
-                                  <p className="text-[15px] font-black text-white group-hover:text-brand transition-colors">{plan.name}</p>
+                                  <div className="flex items-center gap-2">
+                                     <p className={`text-[15px] font-black transition-colors ${plan.id === prioritizedPlanId ? 'text-brand' : 'text-white group-hover:text-brand'}`}>{plan.name}</p>
+                                     {plan.id === prioritizedPlanId && (
+                                       <span className="px-2 py-0.5 bg-brand text-white text-[9px] font-black rounded-full uppercase tracking-wider">当前正在编辑</span>
+                                     )}
+                                  </div>
                                   <p className="text-[12px] text-white/20 font-bold mt-0.5">
                                     {itemCount} 件单品 · ¥{pricing.formatCurrency(totalPrice)}
                                   </p>
                                </div>
                             </div>
-                            <ChevronRight className="w-5 h-5 text-white/10 group-hover:text-white transition-colors" />
+                            <ChevronRight className={`w-5 h-5 transition-colors ${plan.id === prioritizedPlanId ? 'text-brand' : 'text-white/10 group-hover:text-white'}`} />
                          </button>
-                       );
+                      );
                      })
                    ) : (
                      <div className="py-12 flex flex-col items-center justify-center text-center bg-white/[0.02] border border-dashed border-white/10 rounded-3xl">
@@ -178,9 +223,11 @@ export default function AddToPlanModal({ isOpen, onClose, product, onSuccess, on
 
                 <button 
                   onClick={handleCreateAndAdd}
-                  className="w-full py-5 bg-white text-black rounded-3xl font-black text-[16px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  disabled={!!isAdding}
+                  className={`w-full py-5 bg-white text-black rounded-3xl font-black text-[16px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isAdding === 'new' ? 'opacity-50' : ''}`}
                 >
-                  创建并加入方案
+                  {isAdding === 'new' && <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                  {isAdding === 'new' ? '正在创建...' : '创建并加入方案'}
                 </button>
              </div>
            )}

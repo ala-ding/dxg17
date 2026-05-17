@@ -7,12 +7,15 @@ import { libraryService } from '../services/libraryService';
 import { orderService } from '../services/orderService';
 import { planService } from '../services/planService';
 import { analyticsService } from '../services/analyticsService';
+import { membershipService } from '../services/membershipService';
+import { UserMembership } from '../types/business';
 import Breadcrumbs from '../components/Breadcrumbs';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [membership, setMembership] = useState<UserMembership | null>(null);
   const [stats, setStats] = useState({
     plans: 0,
     library: 0,
@@ -28,8 +31,12 @@ export default function ProfilePage() {
     const user = await authService.getCurrentUser();
     setCurrentUser(user);
     
-    const adminStatus = await authService.isAdmin();
+    const [adminStatus, m] = await Promise.all([
+      authService.isAdmin(),
+      membershipService.getCurrentUserMembership()
+    ]);
     setIsAdmin(adminStatus);
+    setMembership(m);
 
     // Load actual counts
     const plans = await planService.getPlans();
@@ -69,13 +76,20 @@ export default function ProfilePage() {
         {/* Sidebar */}
         <div className="flex flex-col gap-10 lg:border-r border-white/5 lg:pr-12">
           <div className="flex flex-col items-center text-center">
-            <div className="w-28 h-28 rounded-[40px] bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white text-[40px] font-black shadow-2xl shadow-brand/20 mb-6 ring-8 ring-white/5">
-              {currentUser?.email?.[0].toUpperCase() || 'U'}
+            <div className="relative">
+              <div className="w-28 h-28 rounded-[40px] bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white text-[40px] font-black shadow-2xl shadow-brand/20 mb-6 ring-8 ring-white/5 overflow-hidden">
+                {currentUser?.email?.[0].toUpperCase() || 'U'}
+              </div>
+              {membership?.plan_code === 'professional' && (
+                <div className="absolute -bottom-2 -right-2 bg-brand text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border-4 border-[#1A1A1A] shadow-xl">
+                  PRO
+                </div>
+              )}
             </div>
             <h2 className="text-[24px] font-black text-white mb-2">{currentUser?.email?.split('@')[0] || '访客屋主'}</h2>
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] text-white/40 font-black uppercase tracking-widest">
-                {isAdmin ? '管理员控制台已解锁' : '普通屋主'}
+                {isAdmin ? '管理员控制台已解锁' : membership?.plan_code === 'professional' ? '专业会员' : membership?.plan_code === 'consulting' ? '咨询会员' : '普通屋主'}
               </span>
             </div>
           </div>
@@ -141,33 +155,50 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* Membership / Promotion */}
+          {/* Membership Info */}
           <section>
             <h3 className="text-[20px] font-black text-white mb-8 flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-brand" /> 尊享权益
+              <div className="w-2 h-2 rounded-full bg-brand" /> 会员权益
             </h3>
-            <div className="bg-gradient-to-br from-[#111] via-[#222] to-[#111] rounded-[48px] p-10 text-white relative overflow-hidden group border border-white/10">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(45,212,191,0.1),transparent)]" />
-              <Sparkles className="absolute right-[-20px] top-[-20px] w-56 h-56 text-brand/5 rotate-12 group-hover:scale-110 transition-transform duration-1000" />
-              
-              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="max-w-md">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand/20 text-brand rounded-full text-[10px] font-black mb-4">
-                    限时特惠中
-                  </div>
-                  <h4 className="text-[32px] font-black tracking-tight mb-2">底线哥选品会员</h4>
-                  <p className="text-white/40 text-[15px] font-medium leading-relaxed">
-                    加入底线哥官方选品库，解锁源头大厂直供价格，享受 AI 全屋方案 1:1 动态还原及 10 年长期售后保障。
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { 
+                  title: '咨询会员', 
+                  price: '¥300/月', 
+                  desc: '适合有清单、有报价、怕买错买贵的用户。提供清单审核、预算判断和选购建议。',
+                  btn: '查看咨询会员',
+                  path: '/membership?tab=personal'
+                },
+                { 
+                  title: '专业会员', 
+                  price: '¥1999/年', 
+                  desc: '适合设计师、工作室和长期采购用户。可查看专业采购价、阶梯价、起订量及产品资料。',
+                  btn: '查看专业会员',
+                  path: '/membership?tab=professional'
+                },
+                { 
+                  title: '定制服务', 
+                  price: '联系报价', 
+                  desc: '适合长期采购、厂家协调、项目跟进和企业合作需求。平台提供专属人工协调服务。',
+                  btn: '申请定制服务',
+                  path: '/custom-service'
+                }
+              ].map((card, i) => (
+                <div key={i} className="bg-white/5 border border-white/5 p-8 rounded-[40px] flex flex-col hover:border-white/20 transition-all group">
+                  <h4 className="text-[18px] font-black text-white mb-1 group-hover:text-brand transition-colors">{card.title}</h4>
+                  <p className="text-brand text-[14px] font-black mb-4">{card.price}</p>
+                  <p className="text-white/40 text-[13px] font-medium leading-relaxed mb-8 flex-1">
+                    {card.desc}
                   </p>
+                  <Link 
+                    to={card.path}
+                    className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-black rounded-2xl text-[14px] font-black text-center transition-all flex items-center justify-center gap-2"
+                  >
+                    {card.btn}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </div>
-                <div className="flex flex-col items-center gap-4 text-center">
-                   <p className="text-[36px] font-black text-white">¥1,299 <span className="text-[14px] text-white/40 line-through">¥2,599</span></p>
-                   <button className="px-10 py-5 bg-brand text-white rounded-[24px] text-[17px] font-black shadow-2xl shadow-brand/20 hover:scale-105 active:scale-95 transition-all">
-                     立即加入，节省更多
-                   </button>
-                   <p className="text-white/30 text-[12px] font-medium">权益终身有效 · 专家 1对1 咨询</p>
-                </div>
-              </div>
+              ))}
             </div>
           </section>
         </div>

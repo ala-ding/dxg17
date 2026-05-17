@@ -142,174 +142,172 @@ export const planStorage = {
     const plans = this.getPlans();
     const updatedPlans = plans.map(p => {
       if (p.id === planId) {
-        // Find target space by name or default to first
-        let targetSpace = p.spaces[0];
-        if (spaceName) {
-          const found = p.spaces.find(s => s.name === spaceName);
+        // Normalize product ID
+        const productId = product.productId || product.product_id || product.id || (product.product_snapshot && product.product_snapshot.id);
+        
+        // Find existing item ACROSS ALL SPACES to prevent cross-space duplicates
+        let existingItem: any = null;
+        let existingSpaceId: string | null = null;
+
+        for (const s of (p.spaces || [])) {
+          const found = (s.items || []).find(it => 
+            it && (it.product_id === productId || it.productId === productId || it.id === productId)
+          );
           if (found) {
-            targetSpace = found;
-          } else {
-            // Create new space if not found
-            targetSpace = { id: `s_${Date.now()}`, name: spaceName, budget: 0, items: [], note: '' };
-            p.spaces.push(targetSpace);
+            existingItem = found;
+            existingSpaceId = s.id;
+            break;
           }
         }
-        
-        const updatedSpaces = p.spaces.map(s => {
-          if (s.id === targetSpace.id) {
-            // Check if already exists
-            // Use filtered items for index finding to prevent index mismatch
-            const filteredItems = (s.items || []).filter(Boolean);
-            const existsIdx = filteredItems.findIndex(item => 
-              item && (item.id === product.id || (item as any).productId === product.id || (item as any).product_id === product.id)
-            );
-            
-            // Safe mapping using logic provided by user
-            const price = Number(
-              product.price ?? 
-              product.unitPrice ?? 
-              product.unit_price ?? 
-              product.product?.price ?? 
-              product.product_snapshot?.price ?? 
-              0
-            );
-            const qty = Number(quantity ?? product.quantity ?? 1);
 
-            if (existsIdx === -1) {
-              const newItem: any = {
-                id: product.id || `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                product_id: product.productId || product.id,
-                name: product.name,
-                category: product.category,
-                space: spaceName || s.name,
-                quantity: qty,
-                price: price,
-                unitPrice: price,
-                unit_price: price,
-                subtotal: price * qty,
-                image: product.image ?? product.product?.image ?? '',
-                brand: product.brand ?? product.product?.brand ?? 'DXG Select',
-                addedAt: new Date().toISOString(),
-                type: '必买',
-                product_snapshot: {
-                  ...product,
-                  id: product.productId || product.id,
-                  name: product.name,
-                  category: product.category,
-                  price,
-                  image: product.image ?? product.product?.image ?? '',
-                  brand: product.brand ?? 'DXG Select'
-                }
+        const price = Number(
+          product.price ?? 
+          product.unitPrice ?? 
+          product.unit_price ?? 
+          product.product?.price ?? 
+          product.product_snapshot?.price ?? 
+          0
+        );
+        const qty = Number(quantity ?? product.quantity ?? 1);
+
+        if (existingItem) {
+          // If exists in ANY space, update its quantity there
+          const updatedSpaces = p.spaces.map(s => {
+            if (s.id === existingSpaceId) {
+              return {
+                ...s,
+                items: (s.items || []).map(it => {
+                  const itPid = it.product_id || it.productId || it.id;
+                  if (itPid === productId) {
+                    const newQty = (it.quantity || 0) + qty;
+                    return {
+                      ...it,
+                      quantity: newQty,
+                      price: price || it.price,
+                      unitPrice: price || it.unitPrice,
+                      unit_price: price || it.unit_price,
+                      subtotal: (price || it.price || 0) * newQty
+                    };
+                  }
+                  return it;
+                })
               };
-              return { ...s, items: [...filteredItems, newItem] };
+            }
+            return s;
+          });
+
+          return this.finalizePlanUpdate(p, updatedSpaces);
+        } else {
+          // Add new item to target space
+          let targetSpace = p.spaces[0];
+          if (spaceName) {
+            const found = p.spaces.find(s => s.name === spaceName || s.id === spaceName);
+            if (found) {
+              targetSpace = found;
             } else {
-              // If exists, update quantity
-              const updatedItems = [...filteredItems];
-              const existingItem = updatedItems[existsIdx];
-              const newQty = (existingItem.quantity || 0) + qty;
-              updatedItems[existsIdx] = { 
-                ...existingItem, 
-                quantity: newQty,
-                price: price || existingItem.price,
-                unitPrice: price || existingItem.unitPrice,
-                unit_price: price || existingItem.unit_price,
-                subtotal: (price || existingItem.price || 0) * newQty
-              };
-              return { ...s, items: updatedItems };
+              targetSpace = { id: `s_${Date.now()}`, name: spaceName, budget: 0, items: [], note: '' };
+              p.spaces.push(targetSpace);
             }
           }
-          return s;
-        });
 
-        // Recalculate totals
-        const allItems = updatedSpaces.flatMap(s => (s.items || []).filter(Boolean));
-        const productTotal = pricing.calculateProductTotal(allItems);
-        const serviceFee = pricing.calculateServiceFee(productTotal);
-        const deliveryFee = pricing.calculateDeliveryFee(productTotal);
-        const grandTotal = pricing.calculateGrandTotal(productTotal);
+          const newItem: any = {
+            id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            product_id: productId,
+            name: product.name,
+            category: product.category,
+            space: targetSpace.name,
+            quantity: qty,
+            price: price,
+            unitPrice: price,
+            unit_price: price,
+            subtotal: price * qty,
+            image: product.image ?? product.product?.image ?? '',
+            brand: product.brand ?? product.product?.brand ?? 'DXG Select',
+            addedAt: new Date().toISOString(),
+            type: '必买',
+            product_snapshot: {
+              ...product,
+              id: productId,
+              name: product.name,
+              category: product.category,
+              price,
+              image: product.image ?? product.product?.image ?? '',
+              brand: product.brand ?? 'DXG Select'
+            }
+          };
 
-        return { 
-          ...p, 
-          spaces: updatedSpaces, 
-          updatedAt: new Date().toISOString().split('T')[0],
-          total_product_amount: productTotal,
-          service_fee: serviceFee,
-          delivery_fee: deliveryFee,
-          grand_total: grandTotal,
-          budget: {
-            ...p.budget,
-            furnitureTotal: productTotal,
-            estimatedTotal: grandTotal
-          }
-        };
+          const updatedSpaces = p.spaces.map(s => {
+            if (s.id === targetSpace.id) {
+              return {
+                ...s,
+                items: [...(s.items || []).filter(Boolean), newItem]
+              };
+            }
+            return s;
+          });
+
+          return this.finalizePlanUpdate(p, updatedSpaces);
+        }
       }
       return p;
     });
     this.savePlans(updatedPlans);
   },
 
-  removeProductFromPlan(planId: string, productId: string): void {
+  finalizePlanUpdate(p: any, updatedSpaces: any[]) {
+    const allItems = updatedSpaces.flatMap(s => (s.items || []).filter(Boolean));
+    const productTotal = pricing.calculateProductTotal(allItems);
+    const serviceFee = pricing.calculateServiceFee(productTotal);
+    const deliveryFee = pricing.calculateDeliveryFee(productTotal);
+    const grandTotal = pricing.calculateGrandTotal(productTotal);
+
+    return { 
+      ...p, 
+      spaces: updatedSpaces, 
+      updatedAt: new Date().toISOString().split('T')[0],
+      total_product_amount: productTotal,
+      service_fee: serviceFee,
+      delivery_fee: deliveryFee,
+      grand_total: grandTotal,
+      budget: {
+        ...p.budget,
+        furnitureTotal: productTotal,
+        estimatedTotal: grandTotal
+      }
+    };
+  },
+
+  removeProductFromPlan(planId: string, itemId: string): void {
     const plans = this.getPlans();
     const updatedPlans = plans.map(p => {
       if (p.id === planId) {
         const updatedSpaces = p.spaces.map(s => ({
           ...s,
-          items: s.items.filter(i => i.id !== productId)
+          items: (s.items || []).filter(i => i && i.id !== itemId)
         }));
-        const allItems = updatedSpaces.flatMap(s => s.items);
-        const productTotal = pricing.calculateProductTotal(allItems);
-        const grandTotal = pricing.calculateGrandTotal(productTotal);
-
-        return { 
-          ...p, 
-          spaces: updatedSpaces, 
-          updatedAt: new Date().toISOString().split('T')[0],
-          total_product_amount: productTotal,
-          grand_total: grandTotal,
-          budget: {
-            ...p.budget,
-            furnitureTotal: productTotal,
-            estimatedTotal: grandTotal
-          }
-        };
+        return this.finalizePlanUpdate(p, updatedSpaces);
       }
       return p;
     });
     this.savePlans(updatedPlans);
   },
 
-  updateItemQuantity(planId: string, productId: string, quantity: number): void {
+  updateItemQuantity(planId: string, itemId: string, quantity: number): void {
     const plans = this.getPlans();
     const updatedPlans = plans.map(p => {
       if (p.id === planId) {
-        const updatedSpaces = p.spaces.map(s => ({
+        const updatedSpaces = (p.spaces || []).map(s => ({
           ...s,
           items: (s.items || []).filter(Boolean).map(i => {
-            if (i.id === productId) {
+            if (i.id === itemId) {
               const price = Number(i.price ?? i.unitPrice ?? (i as any).unit_price ?? 0);
-              const qty = Number(quantity ?? 1);
+              const qty = Math.max(1, Number(quantity));
               return { ...i, quantity: qty, subtotal: price * qty };
             }
             return i;
           })
         }));
-
-        const allItems = updatedSpaces.flatMap(s => (s.items || []).filter(Boolean));
-        const productTotal = pricing.calculateProductTotal(allItems);
-        const grandTotal = pricing.calculateGrandTotal(productTotal);
-
-        return { 
-          ...p, 
-          spaces: updatedSpaces, 
-          updatedAt: new Date().toISOString().split('T')[0],
-          total_product_amount: productTotal,
-          grand_total: grandTotal,
-          budget: {
-            ...p.budget,
-            furnitureTotal: productTotal,
-            estimatedTotal: grandTotal
-          }
-        };
+        return this.finalizePlanUpdate(p, updatedSpaces);
       }
       return p;
     });

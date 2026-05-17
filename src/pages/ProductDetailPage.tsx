@@ -6,12 +6,15 @@ import {
   ChevronRight, ArrowLeft, ShoppingBag, Sparkles, ShieldCheck, 
   Info, AlertTriangle, CheckCircle2, TrendingUp, Layers, 
   Ruler, Box, Wrench, Droplet, Users, ChevronDown, Share2, 
-  Maximize2, Play, Heart, RefreshCw, Zap, Minus, Plus, Search
+  Maximize2, Play, Heart, RefreshCw, Zap, Minus, Plus, Search,
+  ArrowUpRight, ArrowRight, Building2, Phone
 } from 'lucide-react';
 import { Product } from '../types/business';
 import { productService } from '../services/productService';
 import { libraryService } from '../services/libraryService';
 import { analyticsService } from '../services/analyticsService';
+import { membershipService } from '../services/membershipService';
+import { UserMembership } from '../types/business';
 import Toast from '../components/Toast';
 import AddToPlanModal from '../components/AddToPlanModal';
 
@@ -35,6 +38,7 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [membership, setMembership] = useState<UserMembership | null>(null);
   const [activeSection, setActiveSection] = useState('overview');
   const [isScrolled, setIsScrolled] = useState(false);
   const [focusPoint, setFocusPoint] = useState<'default' | 'budget' | 'effect' | 'size' | 'family'>('default');
@@ -53,7 +57,11 @@ export default function ProductDetailPage() {
   const loadProduct = async (id: string) => {
     try {
       setLoading(true);
-      const data = await productService.getProductById(id);
+      const [data, m] = await Promise.all([
+        productService.getProductById(id),
+        membershipService.getCurrentUserMembership()
+      ]);
+      setMembership(m);
       if (data) {
         setProduct(data);
       } else if (snapshot) {
@@ -207,7 +215,7 @@ export default function ProductDetailPage() {
                 </div>
              </div>
              <div className="flex items-center gap-4">
-                <span className="text-[16px] font-black text-white">¥{productPrice.toLocaleString()}</span>
+                <span className="text-[16px] font-black text-white">¥{(product.standard_service_price || Math.round(productPrice * 1.2)).toLocaleString()}</span>
                 <button 
                   onClick={handleJoinPlan}
                   className="px-6 py-2.5 bg-brand text-white rounded-full text-[13px] font-black shadow-lg shadow-brand/20 hover:scale-105 transition-all"
@@ -258,7 +266,7 @@ export default function ProductDetailPage() {
               className="aspect-[4/3] rounded-[64px] overflow-hidden bg-white/5 border border-white/10 group relative"
             >
               <img 
-                src={product.image} 
+                src={product.image || null} 
                 className="w-full h-full object-contain transition-transform duration-1000 group-hover:scale-105" 
                 alt={product.name}
               />
@@ -271,7 +279,7 @@ export default function ProductDetailPage() {
             <div className="grid grid-cols-4 gap-4">
               {[product.image, product.image, product.image].map((img, i) => (
                 <div key={i} className="aspect-square rounded-[32px] overflow-hidden bg-white/5 border border-white/5 cursor-pointer hover:border-brand transition-all flex items-center justify-center p-2">
-                   <img src={img} className="max-w-full max-h-full object-contain" />
+                   <img src={img || null} className="max-w-full max-h-full object-contain" alt={`${product.name} thumbnail ${i + 1}`} />
                 </div>
               ))}
               <div className="aspect-square rounded-[32px] bg-white/5 border border-white/5 flex items-center justify-center text-white/20 group cursor-pointer hover:bg-brand/5">
@@ -301,9 +309,16 @@ export default function ProductDetailPage() {
               <h1 className="text-[56px] font-black leading-[1.1] tracking-tight mb-4 text-white uppercase">{product.name}</h1>
               <p className="text-[28px] text-white/40 font-medium mb-10">{product.tagline || (product.category ? `${product.category} · 品质之选` : "让空间先舒服起来。")}</p>
               
-              <div className="text-[48px] font-black mb-12 flex items-baseline gap-2 text-white">
-                ¥{productPrice.toLocaleString()}
-                <span className="text-[18px] text-white/20 font-bold uppercase tracking-widest ml-4">RMB 起</span>
+              <div className="mb-12">
+                <div className="flex items-center gap-2 text-brand/60 text-[13px] font-black uppercase tracking-widest mb-2">
+                  <Sparkles className="w-4 h-4" /> 平台标准服务价
+                </div>
+                <div className="text-[48px] font-black flex items-baseline gap-4 text-white italic">
+                  ¥{(product.standard_service_price || Math.round(productPrice * 1.2)).toLocaleString()}
+                </div>
+                <p className="text-white/40 text-[14px] font-medium mt-4 leading-relaxed max-w-lg">
+                  包含：产品出厂价 + 平台标准服务费用。加入方案后，可根据你的需求在结算页选择 <span className="text-white">自助采购</span>、<span className="text-white">平台标准服务</span> 或 <span className="text-white">本地区域服务商</span>。
+                </p>
               </div>
 
               {/* Bottom Line Bro Judgment */}
@@ -463,8 +478,8 @@ export default function ProductDetailPage() {
                  <div className="space-y-12">
                     <div className="grid grid-cols-2 gap-8">
                        <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-100">
-                          <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">当前价格</span>
-                          <span className="text-[32px] font-black">¥{productPrice.toLocaleString()}</span>
+                          <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">平台标准服务价</span>
+                          <span className="text-[32px] font-black">¥{(product.standard_service_price || Math.round(productPrice * 1.2)).toLocaleString()}</span>
                        </div>
                        <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-100">
                           <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">同类参考区间</span>
@@ -521,6 +536,21 @@ export default function ProductDetailPage() {
                       </div>
                    </div>
                  ))}
+
+                 {/* Custom Service Call to Action */}
+                 <div className="p-10 bg-brand/5 border border-brand/20 rounded-[48px] relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-brand/10 blur-[40px]" />
+                   <h4 className="text-[20px] font-black text-gray-900 mb-2 relative z-10 text-left">需要更高阶的采购服务？</h4>
+                   <p className="text-gray-500 text-[14px] font-medium mb-8 relative z-10 text-left leading-relaxed">
+                     对于复杂的厂家协调、多供应商比价、大宗采购议价或项目落地跟见，你可以申请我们的定制服务。
+                   </p>
+                   <Link 
+                     to="/custom-service"
+                     className="inline-flex items-center gap-2 text-[14px] font-black text-brand relative z-10 hover:gap-4 transition-all"
+                   >
+                     了解定制服务详情 <ArrowRight className="w-5 h-5" />
+                   </Link>
+                 </div>
               </div>
            </div>
         </section>
@@ -735,8 +765,8 @@ export default function ProductDetailPage() {
         >
            <div className="flex items-center gap-12 text-left">
               <div className="flex flex-col">
-                <span className="text-white font-black text-[28px]">¥{productPrice.toLocaleString()}</span>
-                <span className="text-white/40 text-[12px] font-bold uppercase tracking-widest">最终配置以方案为准</span>
+                <span className="text-white font-black text-[28px]">¥{(product.standard_service_price || Math.round(productPrice * 1.2)).toLocaleString()}</span>
+                <span className="text-white/40 text-[12px] font-bold uppercase tracking-widest">包含平台标准服务费</span>
               </div>
               <div className="hidden lg:flex items-center gap-4">
                  <div className="px-4 py-1.5 bg-brand/20 border border-brand/20 text-brand rounded-[12px] text-[12px] font-black">

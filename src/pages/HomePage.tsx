@@ -13,7 +13,7 @@ interface HomePageProps {
   openModal: (type: any, data?: any) => void;
 }
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { analyticsService } from '../services/analyticsService';
 
 export default function HomePage({ 
@@ -22,6 +22,7 @@ export default function HomePage({
   showToast, openModal 
 }: HomePageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState(0);
 
   // Handle intersection for active section tracking
@@ -91,7 +92,7 @@ export default function HomePage({
               }}
               className="px-10 h-16 bg-white text-black rounded-full text-[17px] font-bold hover:scale-105 active:scale-95 transition-all shadow-2xl"
             >
-              直接预览方案
+              直接预览全屋方案
             </button>
             <Link 
               to="/products"
@@ -100,6 +101,41 @@ export default function HomePage({
             >
               搜索单品库 <ArrowRight className="w-4 h-4" />
             </Link>
+          </div>
+
+          <div className="mt-12 flex flex-col items-center gap-6">
+            <div className="text-[14px] text-white/40 font-bold flex items-center gap-2">
+              不知道怎么选？
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-8">
+              <button 
+                onClick={() => navigate('/products?openDrawer=space')}
+                className="group flex flex-col items-center gap-3"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-brand group-hover:border-brand transition-all">
+                  <Layout className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-[13px] font-black text-white/60 group-hover:text-white transition-colors">按空间看</span>
+              </button>
+              <button 
+                onClick={() => navigate('/products?openDrawer=budget')}
+                className="group flex flex-col items-center gap-3"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-brand group-hover:border-brand transition-all">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-[13px] font-black text-white/60 group-hover:text-white transition-colors">按预算看</span>
+              </button>
+              <button 
+                onClick={() => navigate('/products?openDrawer=ai')}
+                className="group flex flex-col items-center gap-3"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-brand group-hover:border-brand transition-all">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-[13px] font-black text-white/60 group-hover:text-white transition-colors">让 AI 帮我选</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-center gap-8 mt-16 pt-8 border-t border-white/5">
