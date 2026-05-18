@@ -71,6 +71,7 @@ function AppContent() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isScrolledDeep, setIsScrolledDeep] = useState(false);
+  const [canShowBackToTop, setCanShowBackToTop] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const [navTheme, setNavTheme] = useState<'light' | 'dark'>('dark');
@@ -78,8 +79,12 @@ function AppContent() {
   useEffect(() => {
     const handleScroll = () => {
       const scrollPos = window.scrollY;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const innerHeight = window.innerHeight;
+
       setIsScrolled(scrollPos > 50);
       setIsScrolledDeep(scrollPos > 500);
+      setCanShowBackToTop(scrollHeight > innerHeight * 1.5 && scrollPos > 500);
 
       // Nav theme logic
       if (location.pathname === '/products') {
@@ -140,7 +145,7 @@ function AppContent() {
         
         {/* Section 1: Navigation Bar */}
         {!isAdminArea && (
-          <div className="fixed top-4 md:top-8 z-[500] w-full flex justify-center pointer-events-none px-4 md:px-6">
+          <div className="fixed top-3 md:top-8 z-[500] w-full flex justify-center pointer-events-none px-4 md:px-6">
             <header 
               className={`flex items-center justify-between transition-all duration-300 ease-in-out backdrop-blur-3xl pointer-events-auto border ${
                 isLight 
@@ -148,8 +153,8 @@ function AppContent() {
                   : 'bg-[#141414]/55 text-white border-white/10 shadow-2xl'
               } ${
                 isScrolled 
-                  ? 'h-[48px] md:h-[52px] rounded-full px-4 gap-4 md:gap-8' 
-                  : 'w-[92%] md:w-[95%] max-w-[1400px] h-[50px] md:h-[64px] rounded-full md:rounded-2xl px-4 md:px-8 shadow-sm'
+                  ? 'h-[44px] md:h-[52px] rounded-full px-4 gap-4 md:gap-8' 
+                  : 'w-[92%] md:w-[95%] max-w-[460px] md:max-w-[1400px] h-[48px] md:h-[64px] rounded-full md:rounded-2xl px-4 md:px-8 shadow-md'
               }`}
             >
               {/* Brand Section */}
@@ -383,17 +388,21 @@ function AppContent() {
 
         {/* Global floating buttons */}
         {!isAdminArea && (
-          <div className="fixed bottom-6 md:bottom-10 right-4 md:right-12 z-[300] flex flex-col items-end gap-3 md:gap-3.5">
+          <div className="fixed bottom-6 md:bottom-10 right-4 md:right-12 z-[650] flex flex-col items-end gap-3 md:gap-3.5 pointer-events-none">
             {/* Back to Top Button (Small Circle) */}
             <AnimatePresence>
-              {isScrolledDeep && (
+              {canShowBackToTop && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.5, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.5, y: 20 }}
-                  className="group/top flex items-center gap-3"
+                  className={`group/top flex items-center gap-3 fixed pointer-events-auto transition-all duration-300 ${
+                    isProductDetail 
+                      ? 'bottom-[calc(104px+env(safe-area-inset-bottom))]' 
+                      : 'bottom-[calc(18px+env(safe-area-inset-bottom))]'
+                  } right-4 md:static md:bottom-auto md:right-auto`}
                 >
-                  <span className="bg-white/90 backdrop-blur-md text-gray-700 px-3 py-1.5 rounded-xl text-[12px] font-black shadow-lg border border-white opacity-0 group-hover/top:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                  <span className="hidden md:block bg-white/90 backdrop-blur-md text-gray-700 px-3 py-1.5 rounded-xl text-[12px] font-black shadow-lg border border-white opacity-0 group-hover/top:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                     {isProductDetail ? '回到产品概览' : '回到顶部'}
                   </span>
                   <button 
@@ -401,22 +410,22 @@ function AppContent() {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                         document.getElementById('home-page-container')?.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="w-10 h-10 md:w-12 md:h-12 bg-white/70 backdrop-blur-xl text-gray-500 rounded-full flex items-center justify-center shadow-lg border border-white/60 hover:scale-110 hover:bg-white hover:text-brand active:scale-90 transition-all focus:outline-none"
+                    className="w-11 h-11 md:w-12 md:h-12 bg-white/70 backdrop-blur-xl text-gray-500 rounded-full flex items-center justify-center shadow-lg border border-white/60 hover:scale-110 hover:bg-white hover:text-brand active:scale-90 transition-all focus:outline-none"
                   >
-                    <ArrowUp className="w-5 h-5 md:w-6 md:h-6" />
+                    <ArrowUp className="w-6 h-6" />
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Back to Product List (Only on Products Page after scroll) */}
+            {/* Back to Product List (Only on Products Page after scroll) - Hidden on Mobile */}
             <AnimatePresence>
               {location.pathname === '/products' && isScrolled && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.5, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.5, y: 20 }}
-                  className="group/prod flex items-center gap-3"
+                  className="hidden md:flex group/prod items-center gap-3 pointer-events-auto"
                 >
                   <span className="bg-white/90 backdrop-blur-md text-gray-700 px-3 py-1.5 rounded-xl text-[12px] font-black shadow-lg border border-white opacity-0 group-hover/prod:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                     回到产品列表
@@ -432,28 +441,42 @@ function AppContent() {
             </AnimatePresence>
 
             {/* AI Assistant Button (Main Button) - Bottom Safe Area Adjustment */}
-            <div className="flex flex-col items-end gap-2 group/ai relative md:mb-0 mb-4">
-              <button 
-                onClick={() => {
-                  const currentPath = location.pathname;
-                  const isMatchPage = currentPath === '/match' || currentPath === '/my-plans';
-                  
-                  if (isMatchPage) {
-                    // Open Assistant within a plan
-                    window.dispatchEvent(new CustomEvent('open-ai-assistant'));
-                  } else {
-                    // Start new plan via AI assistant
-                    openModal('newPlan');
-                  }
-                }}
-                className="h-12 md:h-14 w-12 md:w-auto px-0 md:px-7 md:pl-4 bg-brand text-white rounded-full flex items-center justify-center md:justify-start gap-0 md:gap-3 shadow-2xl shadow-brand/30 hover:scale-105 active:scale-95 transition-all focus:outline-none group"
-              >
-                <div className="w-9 h-9 md:w-9 md:h-9 bg-white/20 rounded-full flex items-center justify-center shadow-inner shrink-0">
-                  <Sparkles className="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-12 transition-transform" />
-                </div>
-                <span className="hidden md:block text-[15px] font-black tracking-tight">AI帮我看</span>
-              </button>
-            </div>
+            {(!['/products', '/security'].includes(location.pathname) && !location.pathname.startsWith('/product/')) && (
+              <div className="flex flex-col items-end gap-2 group/ai relative md:mb-0 mb-4 hidden md:block pointer-events-auto">
+                <button 
+                  onClick={() => {
+                    const currentPath = location.pathname;
+                    const isMatchPage = currentPath === '/match' || currentPath === '/my-plans';
+                    
+                    if (isMatchPage) {
+                      // Open Assistant within a plan
+                      window.dispatchEvent(new CustomEvent('open-ai-assistant'));
+                    } else {
+                      // Start new plan via AI assistant
+                      openModal('newPlan');
+                    }
+                  }}
+                  className="h-12 md:h-14 w-12 md:w-auto px-0 md:px-7 md:pl-4 bg-brand text-white rounded-full flex items-center justify-center md:justify-start gap-0 md:gap-3 shadow-2xl shadow-brand/30 hover:scale-105 active:scale-95 transition-all focus:outline-none group"
+                >
+                  <div className="w-9 h-9 md:w-9 md:h-9 bg-white/20 rounded-full flex items-center justify-center shadow-inner shrink-0">
+                    <Sparkles className="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-12 transition-transform" />
+                  </div>
+                  <span className="hidden md:block text-[15px] font-black tracking-tight">AI帮我看</span>
+                </button>
+              </div>
+            )}
+            
+            {/* Show AI button always on mobile EXCEPT specified pages */}
+            {(!['/products', '/security'].includes(location.pathname) && !location.pathname.startsWith('/product/') && !isAdminArea) && (
+              <div className="md:hidden flex flex-col items-end gap-2 group/ai relative mb-4 pointer-events-auto">
+                 <button 
+                  onClick={() => openModal('newPlan')}
+                  className="h-12 w-12 bg-brand text-white rounded-full flex items-center justify-center shadow-2xl shadow-brand/30 active:scale-95 transition-all focus:outline-none"
+                >
+                  <Sparkles className="w-5 h-5" />
+                </button>
+              </div>
+            )}
           </div>
         )}
 

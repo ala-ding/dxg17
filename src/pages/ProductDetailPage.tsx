@@ -240,7 +240,7 @@ export default function ProductDetailPage() {
       />
 
       {/* 1. Hero Product Summary */}
-      <section id="overview" className="max-w-[1720px] mx-auto px-6 md:px-12 pt-24 pb-24">
+      <section id="overview" className="max-w-[1720px] mx-auto px-6 md:px-12 pt-16 md:pt-24 pb-16 md:pb-24">
         <Breadcrumbs 
           isDark={true}
           items={[
@@ -263,7 +263,7 @@ export default function ProductDetailPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              className="aspect-[4/3] rounded-[64px] overflow-hidden bg-white/5 border border-white/10 group relative"
+              className="aspect-[4/3] rounded-[24px] md:rounded-[64px] overflow-hidden bg-white/5 border border-white/10 group relative"
             >
               <img 
                 src={product.image || null} 
@@ -278,11 +278,11 @@ export default function ProductDetailPage() {
             
             <div className="grid grid-cols-4 gap-4">
               {[product.image, product.image, product.image].map((img, i) => (
-                <div key={i} className="aspect-square rounded-[32px] overflow-hidden bg-white/5 border border-white/5 cursor-pointer hover:border-brand transition-all flex items-center justify-center p-2">
+                <div key={i} className="aspect-square rounded-[16px] md:rounded-[32px] overflow-hidden bg-white/5 border border-white/5 cursor-pointer hover:border-brand transition-all flex items-center justify-center p-2">
                    <img src={img || null} className="max-w-full max-h-full object-contain" alt={`${product.name} thumbnail ${i + 1}`} />
                 </div>
               ))}
-              <div className="aspect-square rounded-[32px] bg-white/5 border border-white/5 flex items-center justify-center text-white/20 group cursor-pointer hover:bg-brand/5">
+              <div className="aspect-square rounded-[16px] md:rounded-[32px] bg-white/5 border border-white/5 flex items-center justify-center text-white/20 group cursor-pointer hover:bg-brand/5">
                  <Play className="w-8 h-8 group-hover:scale-110 transition-transform" />
               </div>
             </div>
@@ -306,39 +306,39 @@ export default function ProductDetailPage() {
                  <span className="text-[13px] font-black text-white/20 uppercase tracking-[0.2em]">{Array.isArray(product.style) ? product.style[0] : (product.style || '默认风格')}</span>
               </div>
               
-              <h1 className="text-[56px] font-black leading-[1.1] tracking-tight mb-4 text-white uppercase">{product.name}</h1>
-              <p className="text-[28px] text-white/40 font-medium mb-10">{product.tagline || (product.category ? `${product.category} · 品质之选` : "让空间先舒服起来。")}</p>
+              <h1 className="text-[22px] md:text-[56px] font-black leading-[1.1] tracking-tight mb-3 md:mb-4 text-white uppercase">{product.name}</h1>
+              <p className="text-[15px] md:text-[28px] text-white/40 font-medium mb-8 md:mb-10">{product.tagline || (product.category ? `${product.category} · 品质之选` : "让空间先舒服起来。")}</p>
               
-              <div className="mb-12">
-                <div className="flex items-center gap-2 text-brand/60 text-[13px] font-black uppercase tracking-widest mb-2">
+              <div className="mb-10 md:mb-12">
+                <div className="flex items-center gap-2 text-brand/60 text-[11px] md:text-[13px] font-black uppercase tracking-widest mb-1.5 md:mb-2">
                   <Sparkles className="w-4 h-4" /> 平台标准服务价
                 </div>
-                <div className="text-[48px] font-black flex items-baseline gap-4 text-white italic">
+                <div className="text-[28px] md:text-[48px] font-black flex items-baseline gap-4 text-white italic">
                   ¥{(product.standard_service_price || Math.round(productPrice * 1.2)).toLocaleString()}
                 </div>
-                <p className="text-white/40 text-[14px] font-medium mt-4 leading-relaxed max-w-lg">
+                <p className="text-white/40 text-[12px] md:text-[14px] font-medium mt-3 md:mt-4 leading-relaxed max-w-lg">
                   包含：产品出厂价 + 平台标准服务费用。加入方案后，可根据你的需求在结算页选择 <span className="text-white">自助采购</span>、<span className="text-white">平台标准服务</span> 或 <span className="text-white">本地区域服务商</span>。
                 </p>
               </div>
 
               {/* Bottom Line Bro Judgment */}
-              <div className="p-8 bg-white/5 rounded-[48px] border border-white/5 mb-12 relative overflow-hidden group">
+              <div className="p-5 md:p-8 bg-white/5 rounded-[24px] md:rounded-[48px] border border-white/5 mb-8 md:mb-12 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform">
                   <Sparkles className="w-24 h-24 text-brand" />
                 </div>
                 <div className="relative z-10">
-                   <div className="flex items-center gap-3 mb-4">
-                      <div className="w-1.5 h-6 bg-brand rounded-full" />
-                      <span className="text-[11px] font-black text-brand uppercase tracking-[0.3em]">底线哥判断</span>
+                   <div className="flex items-center gap-3 mb-3 md:mb-4">
+                      <div className="w-1.5 h-4 md:h-6 bg-brand rounded-full" />
+                      <span className="text-[10px] md:text-[11px] font-black text-brand uppercase tracking-[0.2em] md:tracking-[0.3em]">底线哥判断</span>
                    </div>
-                   <p className="text-[17px] text-white/60 leading-relaxed font-medium italic">
-                     “{product.recommendationReason || product.description || product.note || "这款产品不仅满足基础功能，更在美学细节上达到了平衡。无论是材质的触感还是视觉的张力，都是方案中的点睛之笔。"}”
+                   <p className="text-[15px] md:text-[17px] text-white/60 leading-relaxed font-medium italic">
+                     “{product.recommendationReason || product.description || product.note || "这款产品不仅满足基础功能，更在美学细节上达到了平衡。"}”
                    </p>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex flex-wrap gap-6 mb-16">
+              {/* Actions - Hidden on mobile, moved to bottom bar */}
+              <div className="hidden md:flex flex-wrap gap-6 mb-16">
                  <button 
                   onClick={handleJoinPlan}
                   className="px-12 py-6 bg-brand text-white rounded-full font-black text-[18px] shadow-2xl shadow-brand/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
@@ -409,13 +409,13 @@ export default function ProductDetailPage() {
       </div>
 
       {/* 3. Detailed Sections Grid */}
-      <div className="max-w-[1720px] mx-auto px-6 md:px-12 space-y-40">
+      <div className="max-w-[1720px] mx-auto px-6 md:px-12 space-y-24 md:space-y-40 pb-32 md:pb-40">
         
         {/* Section: Effect */}
         <section id="effect" className={`scroll-mt-48 transition-all duration-700 ${focusPoint === 'effect' ? 'scale-105' : ''}`}>
            <div className="flex items-end justify-between mb-20">
               <div className="max-w-2xl">
-                 <h2 className="text-[48px] font-black mb-4 tracking-tighter">它放进家里的样子</h2>
+                 <h2 className="text-[24px] md:text-[48px] font-black mb-3 md:mb-4 tracking-tighter">它放进家里的样子</h2>
                  <p className="text-[18px] text-gray-400 font-medium">已自动模拟放入：{product.style?.[0] || '默认风格'} · M2 · 客厅配置方案</p>
               </div>
               <div className="flex items-center gap-6">
@@ -430,19 +430,19 @@ export default function ProductDetailPage() {
            </div>
 
            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-              <div className="lg:col-span-8 rounded-[64px] overflow-hidden bg-gray-50 border border-gray-100 relative group aspect-[16/9]">
+              <div className="lg:col-span-8 rounded-[24px] md:rounded-[64px] overflow-hidden bg-gray-50 border border-gray-100 relative group aspect-[16/9]">
                  <img src="/images/products/p4.jpg" className="w-full h-full object-cover" alt="Space simulation" />
-                 <div className="absolute inset-x-0 bottom-0 p-12 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-                    <p className="text-white text-[20px] font-black leading-relaxed max-w-xl">
-                      这件产品会让客厅视觉更柔和，低重心设计有效释放了层高压力，但也会增加约 15% 的地面占用感。
+                 <div className="absolute inset-x-0 bottom-0 p-6 md:p-12 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+                    <p className="text-white text-[15px] md:text-[20px] font-black leading-relaxed max-w-xl">
+                      这件产品会让客厅视觉更柔和，低重心设计有效释放了层高压力。
                     </p>
                  </div>
               </div>
-              <div className="lg:col-span-4 flex flex-col gap-12">
-                 <div className="flex-1 p-10 bg-[#111] text-white rounded-[56px] relative overflow-hidden">
+              <div className="lg:col-span-4 flex flex-col gap-6 md:gap-12">
+                 <div className="flex-1 p-6 md:p-10 bg-[#111] text-white rounded-[24px] md:rounded-[56px] relative overflow-hidden">
                     <Sparkles className="absolute top-0 right-0 p-8 opacity-[0.1] w-40 h-40" />
-                    <h3 className="text-[24px] font-black mb-8 relative z-10 text-brand">核心审美变化</h3>
-                    <ul className="space-y-8 relative z-10 text-[15px] font-medium text-white/60">
+                    <h3 className="text-[20px] md:text-[24px] font-black mb-6 md:mb-8 relative z-10 text-brand">核心审美变化</h3>
+                    <ul className="space-y-4 md:space-y-8 relative z-10 text-[13px] md:text-[15px] font-medium text-white/60">
                        <li className="flex items-start gap-4">
                           <Plus className="w-5 h-5 text-brand shrink-0" />
                           <span>视觉重心下移，客厅明显“稳”了很多。</span>
@@ -474,29 +474,29 @@ export default function ProductDetailPage() {
         <section id="budget" className={`scroll-mt-48 transition-all duration-700 ${focusPoint === 'budget' ? 'scale-105' : ''}`}>
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-32">
               <div>
-                 <h2 className="text-[48px] font-black mb-10 tracking-tighter">它会怎样影响预算</h2>
-                 <div className="space-y-12">
-                    <div className="grid grid-cols-2 gap-8">
-                       <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-100">
-                          <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">平台标准服务价</span>
-                          <span className="text-[32px] font-black">¥{(product.standard_service_price || Math.round(productPrice * 1.2)).toLocaleString()}</span>
+                 <h2 className="text-[24px] md:text-[48px] font-black mb-6 md:mb-10 tracking-tighter">它会怎样影响预算</h2>
+                 <div className="space-y-6 md:space-y-12">
+                    <div className="grid grid-cols-2 gap-4 md:gap-8">
+                       <div className="p-4 md:p-8 bg-gray-50 rounded-[20px] md:rounded-[40px] border border-gray-100">
+                          <span className="text-[9px] md:text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">标准服务价</span>
+                          <span className="text-[22px] md:text-[32px] font-black">¥{(product.standard_service_price || Math.round(productPrice * 1.2)).toLocaleString()}</span>
                        </div>
-                       <div className="p-8 bg-gray-50 rounded-[40px] border border-gray-100">
-                          <span className="text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">同类参考区间</span>
-                          <span className="text-[18px] font-black text-gray-500">{product.budgetImpact?.comparison}</span>
+                       <div className="p-4 md:p-8 bg-gray-50 rounded-[20px] md:rounded-[40px] border border-gray-100">
+                          <span className="text-[9px] md:text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">同类参考</span>
+                          <span className="text-[14px] md:text-[18px] font-black text-gray-500 line-clamp-1">{product.budgetImpact?.comparison}</span>
                        </div>
                     </div>
                     
-                    <div className="p-10 bg-white border border-gray-100 rounded-[48px] shadow-xl shadow-gray-100/50">
-                       <div className="flex items-center justify-between mb-8">
-                          <h3 className="text-[20px] font-black">放入 M2 方案后的表现</h3>
-                          <span className={`px-4 py-1.5 rounded-full text-[12px] font-black ${product.budgetImpact?.pressure === '高' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>
-                            预算压力 {product.budgetImpact?.pressure}
+                    <div className="p-6 md:p-10 bg-white border border-gray-100 rounded-[24px] md:rounded-[48px] shadow-xl shadow-gray-100/50">
+                       <div className="flex items-center justify-between mb-6 md:mb-8">
+                          <h3 className="text-[16px] md:text-[20px] font-black">放入 M2 方案的表现</h3>
+                          <span className={`px-3 py-1 rounded-full text-[10px] md:text-[12px] font-black ${product.budgetImpact?.pressure === '高' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                            压力 {product.budgetImpact?.pressure}
                           </span>
                        </div>
-                       <div className="space-y-6">
-                          <div className="flex justify-between text-[14px]">
-                            <span className="text-gray-400 font-medium">客厅软装预算占比</span>
+                       <div className="space-y-4 md:space-y-6">
+                          <div className="flex justify-between text-[13px] md:text-[14px]">
+                            <span className="text-gray-400 font-medium">预算占比</span>
                             <span className="font-black">{product.budgetImpact?.percentage}%</span>
                           </div>
                           <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -558,7 +558,7 @@ export default function ProductDetailPage() {
         {/* Section: Matching */}
         <section id="matching" className="scroll-mt-48">
            <div className="text-center max-w-4xl mx-auto mb-24">
-              <h2 className="text-[48px] font-black mb-6 tracking-tighter">和它一起，空间才完整</h2>
+              <h2 className="text-[24px] md:text-[48px] font-black mb-4 md:mb-6 tracking-tighter">和它一起，空间才完整</h2>
               <p className="text-[18px] text-gray-400 font-medium leading-relaxed">
                 单品无法建立审美。我们通过对数千个成功交付案例的分析，整理出了这套搭配全链路建议。
               </p>
@@ -607,35 +607,29 @@ export default function ProductDetailPage() {
 
         {/* Section: Suitability */}
         <section id="suitability" className={`scroll-mt-48 transition-all duration-700 ${focusPoint === 'family' ? 'scale-105' : ''}`}>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <div className="p-16 bg-emerald-50/50 rounded-[64px] border border-emerald-100/50 relative overflow-hidden group">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
+              <div className="p-8 md:p-16 bg-emerald-50/50 rounded-[32px] md:rounded-[64px] border border-emerald-100/50 relative overflow-hidden group">
                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 blur-[80px] group-hover:scale-150 transition-transform duration-1000" />
-                 <CheckCircle2 className="w-12 h-12 text-emerald-500 mb-10" />
-                 <h3 className="text-[36px] font-black mb-8">这件产品适合什么样的家</h3>
-                 <ul className="space-y-6">
+                 <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12 text-emerald-500 mb-6 md:mb-10" />
+                 <h3 className="text-[24px] md:text-[36px] font-black mb-6 md:mb-8">适合什么样的家</h3>
+                 <ul className="space-y-4 md:space-y-6">
                    {product.suitableFor?.map((s, i) => (
-                     <li key={i} className="flex items-center gap-4 text-[17px] font-bold text-emerald-800">
-                       <span className="w-2 h-2 rounded-full bg-emerald-500" /> {s}
+                     <li key={i} className="flex items-center gap-3 text-[14px] md:text-[17px] font-bold text-emerald-800">
+                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {s}
                      </li>
                    ))}
-                   <li className="flex items-center gap-4 text-[17px] font-bold text-emerald-800 opacity-60">
-                      有孩子且看重环保等级
-                   </li>
                  </ul>
               </div>
-              <div className="p-16 bg-red-50/50 rounded-[64px] border border-red-100/50 relative overflow-hidden group">
+              <div className="p-8 md:p-16 bg-red-50/50 rounded-[32px] md:rounded-[64px] border border-red-100/50 relative overflow-hidden group">
                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-red-500/10 blur-[80px] group-hover:scale-150 transition-transform duration-1000" />
-                 <AlertTriangle className="w-12 h-12 text-red-500 mb-10" />
-                 <h3 className="text-[36px] font-black mb-8">哪些情况下不太适合</h3>
-                 <ul className="space-y-6">
+                 <AlertTriangle className="w-10 h-10 md:w-12 md:h-12 text-red-500 mb-6 md:mb-10" />
+                 <h3 className="text-[24px] md:text-[36px] font-black mb-6 md:mb-8">不适合的情况</h3>
+                 <ul className="space-y-4 md:space-y-6">
                    {product.notSuitableFor?.map((s, i) => (
-                     <li key={i} className="flex items-center gap-4 text-[17px] font-bold text-red-800">
-                       <span className="w-2 h-2 rounded-full bg-red-400" /> {s}
+                     <li key={i} className="flex items-center gap-3 text-[14px] md:text-[17px] font-bold text-red-800">
+                       <span className="w-1.5 h-1.5 rounded-full bg-red-400" /> {s}
                      </li>
                    ))}
-                   <li className="flex items-center gap-4 text-[17px] font-bold text-red-800 opacity-60">
-                      家里有宠物且会抓挠面料
-                   </li>
                  </ul>
               </div>
            </div>
@@ -645,12 +639,12 @@ export default function ProductDetailPage() {
         <section id="landing" className={`scroll-mt-48 transition-all duration-700 ${focusPoint === 'size' ? 'scale-105' : ''}`}>
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2">
-                 <h2 className="text-[48px] font-black mb-12 tracking-tighter">买之前，先确认这些</h2>
+                 <h2 className="text-[24px] md:text-[48px] font-black mb-8 md:mb-12 tracking-tighter">买之前，先确认这些</h2>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="p-10 bg-white border border-gray-100 rounded-[48px] shadow-sm">
                        <div className="flex items-center gap-4 mb-8">
                           <Ruler className="w-6 h-6 text-brand" />
-                          <h4 className="text-[20px] font-black">空间尺寸与动线</h4>
+                          <h4 className="text-[18px] md:text-[20px] font-black">空间尺寸与动线</h4>
                        </div>
                        <ul className="space-y-6 text-[15px] font-medium text-gray-500">
                           <li className="flex justify-between">
@@ -670,7 +664,7 @@ export default function ProductDetailPage() {
                     <div className="p-10 bg-white border border-gray-100 rounded-[48px] shadow-sm">
                        <div className="flex items-center gap-4 mb-8">
                           <Box className="w-6 h-6 text-brand" />
-                          <h4 className="text-[20px] font-black">入户条件确认</h4>
+                          <h4 className="text-[18px] md:text-[20px] font-black">入户条件确认</h4>
                        </div>
                        <ul className="space-y-6 text-[15px] font-medium text-gray-500">
                           {product.entryRequirements?.map((r, i) => (
@@ -686,13 +680,13 @@ export default function ProductDetailPage() {
                  </div>
               </div>
               
-              <div className="bg-[#111] text-white p-12 rounded-[64px] flex flex-col justify-center relative overflow-hidden">
+              <div className="bg-[#111] text-white p-8 md:p-12 rounded-[32px] md:rounded-[64px] flex flex-col justify-center relative overflow-hidden">
                  <div className="absolute top-0 right-0 p-12 opacity-[0.2]">
                     <ShieldCheck className="w-32 h-32 text-brand" />
                  </div>
                  <div className="relative z-10">
-                    <h4 className="text-[28px] font-black mb-4">清洁与维护</h4>
-                    <p className="text-white/40 text-[16px] leading-relaxed mb-10 font-medium">
+                    <h4 className="text-[22px] md:text-[28px] font-black mb-4">清洁与维护</h4>
+                    <p className="text-white/40 text-[14px] md:text-[16px] leading-relaxed mb-8 md:mb-10 font-medium">
                        {product.maintenance}
                     </p>
                     <div className="flex items-center gap-4 pt-10 border-t border-white/10">
@@ -708,11 +702,11 @@ export default function ProductDetailPage() {
 
         {/* Section: Params */}
         <section id="params" className="scroll-mt-48 pb-24">
-           <div className="flex items-center gap-4 mb-3">
-              <div className="w-2 h-10 bg-brand rounded-full" />
-              <h2 className="text-[42px] font-black tracking-tight">产品真实参数</h2>
+           <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-3">
+              <div className="w-1.5 h-6 md:h-10 bg-brand rounded-full" />
+              <h2 className="text-[24px] md:text-[42px] font-black tracking-tight">产品真实参数</h2>
            </div>
-           <p className="text-[16px] text-gray-400 font-medium mb-16 ml-6">
+           <p className="text-[13px] md:text-[16px] text-gray-400 font-medium mb-10 md:mb-16 ml-4 md:ml-6">
              以下数据会用于方案适配、预算影响、搭配推荐和 AI 判断。
            </p>
            
@@ -741,8 +735,8 @@ export default function ProductDetailPage() {
         </section>
       </div>
 
-      {/* 4. AI Individual Assessment (Fixed Entry) */}
-      <div className="fixed bottom-12 right-12 z-[450]">
+      {/* 4. AI Individual Assessment (Fixed Entry) - Hidden on mobile in this page to avoid overlap */}
+      <div className="fixed bottom-12 right-12 z-[450] hidden md:block">
         <motion.button 
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -756,8 +750,8 @@ export default function ProductDetailPage() {
         </motion.button>
       </div>
 
-      {/* 5. Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-[400] px-6 pb-10 pointer-events-none">
+      {/* 5. Sticky Bottom Action Bar (Desktop) */}
+      <div className="fixed bottom-0 left-0 right-0 z-[400] px-6 pb-10 pointer-events-none hidden md:block">
         <motion.div 
           initial={{ y: 100 }}
           animate={{ y: 0 }}
@@ -796,6 +790,29 @@ export default function ProductDetailPage() {
               </button>
            </div>
         </motion.div>
+      </div>
+
+      {/* 6. Sticky Bottom Action Bar (Mobile) */}
+      <div className="mobile-bottom-bar md:hidden">
+        <div className="flex flex-col text-left">
+          <span className="text-white font-black text-[20px] md:text-[22px] leading-tight">¥{(product.standard_service_price || Math.round(productPrice * 1.2)).toLocaleString()}</span>
+          <span className="text-white/30 text-[8px] md:text-[9px] uppercase tracking-[0.2em] font-black">标准服务价</span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-2">
+           <button 
+             onClick={handleJoinLibrary}
+             className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/10 flex items-center justify-center text-white/40 active:bg-white/10"
+           >
+             <Heart className="w-5 h-5" />
+           </button>
+           <button 
+             onClick={handleJoinPlan}
+             className="h-10 md:h-12 px-5 md:px-6 bg-brand text-white rounded-full font-black text-[13px] md:text-[14px] flex items-center justify-center gap-2 shadow-lg shadow-brand/20 active:scale-95 transition-transform"
+           >
+             加入方案
+           </button>
+        </div>
       </div>
       
       {/* Scroll padding */}

@@ -15,10 +15,40 @@
   --radius-3xl: 2rem;
 }
 
+:root {
+  --mobile-page-x: 16px;
+  --mobile-title: 32px;
+  --mobile-section-title: 24px;
+  --mobile-card-radius: 20px;
+  --mobile-card-padding: 16px;
+  --mobile-bottom-bar-height: 72px;
+  --mobile-safe-bottom: env(safe-area-inset-bottom);
+}
+
 @layer base {
+  html, body {
+    @apply overflow-x-hidden;
+    width: 100%;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     @apply font-sans text-gray-900 bg-white antialiased overflow-y-auto;
   }
+}
+
+@utility mobile-bottom-bar {
+  @apply fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-3xl border-t border-white/5 z-[600] flex items-center px-4 md:hidden;
+  height: var(--mobile-bottom-bar-height);
+  padding-bottom: var(--mobile-safe-bottom);
+}
+
+@utility mobile-primary-btn {
+  @apply h-11 md:h-14 bg-brand text-white rounded-full font-black text-[14px] md:text-[16px] flex items-center justify-center gap-2;
+}
+
+@utility mobile-icon-btn {
+  @apply h-11 w-11 md:h-14 md:w-14 bg-white/10 rounded-full flex items-center justify-center text-white/60 active:bg-white/20;
 }
 
 @utility glass-morphism {

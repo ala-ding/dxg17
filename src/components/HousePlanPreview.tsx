@@ -413,28 +413,28 @@ export default function HousePlanPreview({
            </div>
            
            <div className="flex items-center gap-4">
-              <motion.div 
-                animate={{ 
-                  y: (showDetails || showAI) ? 120 : 0,
-                  opacity: (showDetails || showAI) ? 0.2 : 1,
-                  scale: (showDetails || showAI) ? 0.9 : 1
-                }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 md:gap-4 w-full md:w-auto"
-              >
-                  <button 
-                    onClick={() => togglePanel('plan')}
-                    className="px-6 md:px-8 h-11 md:h-12 bg-white text-black rounded-full text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
-                  >
-                    查看方案概览 <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setShowChecklistModal(true)}
-                    className="px-6 md:px-8 h-11 md:h-12 bg-brand text-white rounded-full text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
-                  >
-                    查看完整清单 <ShoppingBag className="w-4 h-4" />
-                  </button>
-                  <div className="relative group/per hidden md:block">
+                <motion.div 
+                  animate={{ 
+                    y: (showDetails || showAI) ? 120 : 0,
+                    opacity: (showDetails || showAI) ? 0.2 : 1,
+                    scale: (showDetails || showAI) ? 0.9 : 1
+                  }}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 w-full md:w-auto"
+                >
+                    <button 
+                      onClick={() => togglePanel('plan')}
+                      className="px-8 h-[52px] md:h-14 bg-white text-black rounded-full text-[15px] md:text-[16px] font-black shadow-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                    >
+                      查看方案概览 <ChevronRight className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => setShowChecklistModal(true)}
+                      className="px-8 h-[46px] md:h-12 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full text-[14px] font-bold hover:bg-white/20 transition-all flex items-center justify-center gap-2"
+                    >
+                      查看完整清单 <ShoppingBag className="w-4 h-4 text-white/60" />
+                    </button>
+                    <div className="relative group/per hidden md:block ml-2">
                     <button 
                       onClick={() => openModal('matchIntro')}
                       className="px-8 h-12 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full text-[14px] font-bold hover:bg-white/20 transition-all"
@@ -667,22 +667,22 @@ export default function HousePlanPreview({
                       </div>
                    </div>
 
-                   <div className="flex items-center gap-3 md:gap-4 pt-6 md:pt-8 bg-black/5 md:bg-transparent">
+                   <div className="flex flex-col gap-3 pt-6 md:pt-8 bg-black/5 md:bg-transparent px-2 md:px-0">
                       <button 
                         onClick={() => {
                           setShowPlanSummary(false);
                           setNewPlanName(`${budgetLevelMap[currentFloor.budget]?.title || currentFloor.name}｜${currentFloor.budget}｜${currentStyle}方案`);
                           setIsGeneratingPlan(true);
                         }}
-                        className="flex-1 h-12 md:h-14 bg-white text-black rounded-full font-bold text-[14px] md:text-[15px] hover:scale-[1.02] transition-transform shadow-xl"
+                        className="w-full h-12 md:h-14 bg-white text-black rounded-full font-black text-[15px] hover:scale-[1.01] transition-transform shadow-xl flex items-center justify-center gap-2"
                       >
-                         按这套生成
+                         <CheckCircle2 className="w-4 h-4" /> 按这套生成我的方案
                       </button>
                       <button 
                         onClick={() => setShowChecklistModal(true)}
-                        className="flex-1 h-12 md:h-14 bg-white/10 text-white rounded-full font-bold text-[14px] md:text-[15px] hover:bg-white/20 transition-all border border-white/10"
+                        className="w-full h-11 md:h-14 bg-white/5 text-white/40 rounded-full font-bold text-[13px] md:text-[14px] hover:bg-white/10 transition-all border border-white/5 md:border-white/10"
                       >
-                         完整清单
+                         查看完整物料清单
                       </button>
                    </div>
                 </div>

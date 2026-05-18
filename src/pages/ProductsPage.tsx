@@ -8,7 +8,7 @@ import {
   SlidersHorizontal, ChevronDown, Filter, ArrowUpRight,
   Sparkles, ArrowLeft, LayoutGrid, Sofa, Bed, Table, Archive, 
   Lamp, Waves, Palette, Image as ImageIcon, Box, HelpCircle, MessageSquare,
-  RefreshCw
+  RefreshCw, Plus
 } from 'lucide-react';
 import { Product, UserMembership } from '../types/business';
 import { productService } from '../services/productService';
@@ -330,8 +330,8 @@ export default function ProductsPage() {
                     <ArrowLeft className="w-3.5 h-3.5" /> {fromPlanId ? '返回方案' : '返回方案预览'}
                   </button>
                 )}
-                <h1 className="text-[48px] md:text-[64px] font-black leading-[1.1] tracking-tight mb-6">探索所有产品</h1>
-                <p className="text-[16px] md:text-[18px] text-gray-500 font-bold max-w-xl">
+                <h1 className="text-[32px] md:text-[64px] font-black leading-[1.1] tracking-tight mb-6">探索所有产品</h1>
+                <p className="text-[14px] md:text-[18px] text-gray-500 font-bold max-w-xl">
                   共发现 {products.length} 款严选家具。所有价格均为“平台标准服务价”。
                 </p>
                 {fromPlanName && (
@@ -459,50 +459,40 @@ export default function ProductsPage() {
           </div>
 
           {/* Search & Filter Bar */}
-          <div className="mt-12">
-            <div className={`p-4 bg-white border border-gray-100 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.06)] flex flex-col lg:flex-row items-center gap-4 transition-all ${showStickyBar ? 'opacity-0 invisible' : 'opacity-100 visible'}`}>
-              <div className="flex-1 w-full relative group">
+          <div className="mt-8 md:mt-12">
+            <div className={`p-3 md:p-4 bg-white border border-gray-100 rounded-[24px] md:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.06)] flex flex-col items-stretch gap-4 transition-all ${showStickyBar ? 'opacity-0 invisible' : 'opacity-100 visible'}`}>
+              <div className="relative group">
                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-brand transition-colors" />
                 <input 
                   type="text"
-                  placeholder="搜索沙发、床、灯具或风格..."
+                  placeholder="搜索沙发、床、灯具..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-16 pl-14 pr-6 bg-gray-50/50 border-none rounded-[24px] text-[15px] font-bold focus:ring-2 focus:ring-brand/10 transition-all outline-none"
+                  className="w-full h-14 md:h-16 pl-14 pr-6 bg-gray-50/50 border-none rounded-[16px] md:rounded-[24px] text-[15px] font-bold focus:ring-2 focus:ring-brand/10 transition-all outline-none"
                 />
               </div>
 
-              <div className="flex items-center gap-3 w-full lg:w-auto h-16">
-                <div className="relative group/select flex-1 lg:flex-none">
-                  <select 
-                    value={selectedSpace}
-                    onChange={(e) => setSelectedSpace(e.target.value)}
-                    className="w-full lg:w-40 h-full pl-6 pr-10 bg-gray-50/50 hover:bg-gray-100 rounded-[24px] text-[14px] font-black border-none focus:ring-2 focus:ring-brand/10 cursor-pointer appearance-none transition-all"
-                  >
-                    <option value="全部">全部空间</option>
-                    {SPACES.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none transition-transform group-hover/select:translate-y-[-40%]" />
-                </div>
-
-                <div className="relative group/select flex-1 lg:flex-none">
-                  <select 
-                    value={selectedTier}
-                    onChange={(e) => setSelectedTier(e.target.value)}
-                    className="w-full lg:w-40 h-full pl-6 pr-10 bg-gray-50/50 hover:bg-gray-100 rounded-[24px] text-[14px] font-black border-none focus:ring-2 focus:ring-brand/10 cursor-pointer appearance-none transition-all"
-                  >
-                    <option value="全部">全部预算</option>
-                    {BUDGET_SERIES.map(s => <option key={s.code} value={s.code}>{s.priceRange}</option>)}
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none transition-transform group-hover/select:translate-y-[-40%]" />
-                </div>
-
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
                 <button 
                   onClick={() => setIsFilterOpen(true)}
-                  className="h-full px-8 bg-black text-white rounded-[24px] text-[14px] font-black flex items-center gap-2 hover:bg-zinc-800 transition-all shadow-xl shadow-black/10"
+                  className="h-11 md:h-16 px-6 bg-black text-white rounded-full md:rounded-[24px] text-[13px] md:text-[14px] font-black flex items-center gap-2 hover:bg-zinc-800 transition-all shadow-lg shrink-0"
                 >
-                  <Filter className="w-4 h-4" /> 高级筛选
+                  <Filter className="w-4 h-4" /> 筛选
                 </button>
+                
+                {[
+                  { label: selectedSpace === '全部' ? '所有空间' : selectedSpace, onClick: () => setSpaceMenuOpen(true) },
+                  { label: selectedTier === '全部' ? '所有预算' : selectedTier, onClick: () => setBudgetMenuOpen(true) },
+                  { label: 'AI推荐', onClick: () => setAiPickerOpen(true), icon: <Sparkles className="w-3.5 h-3.5" /> }
+                ].map((chip, idx) => (
+                  <button
+                    key={idx}
+                    onClick={chip.onClick}
+                    className="h-11 px-6 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-full text-[13px] font-bold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
+                  >
+                    {chip.label} {chip.icon}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -665,7 +655,7 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12 text-left">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-12 text-left">
               <AnimatePresence mode="popLayout">
                 {products.map((product) => (
                   <motion.div
@@ -675,51 +665,46 @@ export default function ProductsPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                    className="group relative flex flex-col bg-white rounded-[56px] border border-gray-50 shadow-sm hover:shadow-4xl hover:border-brand/40 overflow-hidden transition-all h-full"
+                    className="group relative flex flex-col bg-white rounded-[16px] md:rounded-[56px] border border-gray-50 shadow-sm hover:shadow-4xl hover:border-brand/40 overflow-hidden transition-all h-full"
                   >
-                    <Link to={`/product/${product.id}`} className="block relative h-[340px] overflow-hidden bg-gray-50">
+                    <Link to={`/product/${product.id}`} className="block relative h-[160px] md:h-[340px] overflow-hidden bg-gray-50">
                       <img src={product.image || null} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={product.name} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </Link>
                     
-                    <div className="p-8 flex flex-col flex-1">
-                      <Link to={`/product/${product.id}`} className="mb-6 block group-hover:no-underline text-left">
-                        <div className="flex items-center gap-2 mb-2">
-                           <span className="text-[11px] text-gray-400 font-black uppercase tracking-[0.2em]">{product.brand}</span>
-                           <span className="w-1 h-1 rounded-full bg-gray-200" />
-                           <span className="text-[11px] text-brand/60 font-black">{product.category}</span>
+                    <div className="p-3 md:p-8 flex flex-col flex-1">
+                      <Link to={`/product/${product.id}`} className="mb-2 md:mb-6 block group-hover:no-underline text-left">
+                        <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2">
+                           <span className="text-[9px] md:text-[11px] text-gray-400 font-black uppercase tracking-[0.1em] md:tracking-[0.2em]">{product.brand}</span>
+                           <span className="w-0.5 h-0.5 md:w-1 md:h-1 rounded-full bg-gray-200" />
+                           <span className="text-[9px] md:text-[11px] text-brand/60 font-black">{product.category}</span>
                         </div>
-                        <h3 className="text-[20px] font-black text-gray-800 leading-tight group-hover:text-brand transition-colors mb-2">{product.name}</h3>
+                        <h3 className="text-[14px] md:text-[20px] font-black text-gray-800 leading-tight group-hover:text-brand transition-colors mb-1.5 md:mb-2 line-clamp-2 h-auto md:h-auto">{product.name}</h3>
                         <div className="mt-auto flex items-end justify-between">
-                          <div className="text-[22px] font-black text-gray-900">
-                             <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest block mb-1">
+                          <div className="text-[16px] md:text-[22px] font-black text-gray-900">
+                             <span className="hidden md:block text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">
                                {isProfessional ? '已解锁出厂结算价' : isAgent ? '服务商结算价' : '平台标准服务价'}
                              </span>
+                             <span className="md:hidden text-[9px] text-gray-400 font-black block mb-0.5">标准价</span>
                              ¥{(isProfessional ? (product.factory_price || product.price) : isAgent ? (product.agent_price || product.price) : (product.standard_service_price || product.price)).toLocaleString()}
                           </div>
-                          {!isProfessional && !isAgent && (
-                            <button 
-                              onClick={(e) => { e.preventDefault(); navigate('/membership'); }}
-                              className="text-[10px] font-black text-brand hover:underline"
-                            >
-                              了解专业采购价
-                            </button>
-                          )}
                         </div>
                       </Link>
                       
-                      <div className="flex gap-2 mt-4">
+                      <div className="flex gap-1.5 md:gap-2 mt-auto">
                         <button 
                           onClick={(e) => { e.preventDefault(); handleJoinPlan(product); }}
-                          className="flex-1 h-12 bg-brand text-white rounded-2xl text-[13px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                          className="flex-1 h-9 md:h-12 bg-brand text-white rounded-[10px] md:rounded-2xl text-[12px] md:text-[13px] font-black shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-1"
                         >
-                          加入我的方案
+                          <Plus className="w-3 h-3 md:hidden" />
+                          <span className="hidden md:inline">加入方案</span>
+                          <span className="md:hidden">加入</span>
                         </button>
                         <button 
                           onClick={(e) => { e.preventDefault(); handleJoinLibrary(product); }}
-                          className="w-12 h-12 bg-gray-50 border border-gray-100 text-gray-400 rounded-2xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all"
+                          className="w-9 h-9 md:w-12 md:h-12 bg-gray-50 border border-gray-100 text-gray-400 rounded-[10px] md:rounded-2xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shrink-0"
                         >
-                          <Heart className="w-5 h-5" />
+                          <Heart className="w-4 h-4 md:w-5 h-5" />
                         </button>
                       </div>
                     </div>

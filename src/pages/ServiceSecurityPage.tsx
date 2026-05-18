@@ -46,10 +46,10 @@ export default function ServiceSecurityPage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand/10 text-brand rounded-full text-[12px] font-black uppercase tracking-widest">
             Service & Delivery Standard
           </div>
-          <h1 className="text-[48px] md:text-[64px] font-black tracking-tight leading-tight">
+          <h1 className="text-[32px] md:text-[64px] font-black tracking-tight leading-tight">
             全链路交付<br /><span className="text-brand">服务与保障标准</span>
           </h1>
-          <p className="max-w-2xl text-[18px] text-gray-500 font-medium leading-relaxed">
+          <p className="max-w-2xl text-[15px] md:text-[18px] text-gray-500 font-medium leading-relaxed">
             为您打通从工厂生产到用户家中的最后一公里。我们建立了一套严苛的选品与交付标准，确保每一件严选家具都能完美落地。
           </p>
         </header>
@@ -62,22 +62,22 @@ export default function ServiceSecurityPage() {
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
               key={idx} 
-              className="group bg-white p-12 rounded-[56px] border border-gray-100 shadow-xl hover:shadow-2xl transition-all"
+              className="group bg-white p-8 md:p-12 rounded-[32px] md:rounded-[56px] border border-gray-100 shadow-xl hover:shadow-2xl transition-all"
             >
-              <div className="flex items-center gap-6 mb-10">
-                <div className="w-16 h-16 rounded-[28px] bg-gray-50 flex items-center justify-center transition-colors group-hover:bg-brand/5">
+              <div className="flex items-center gap-4 md:gap-6 mb-6 md:mb-10">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-[20px] md:rounded-[28px] bg-gray-50 flex items-center justify-center transition-colors group-hover:bg-brand/5">
                   {section.icon}
                 </div>
-                <h3 className="text-[28px] font-black">{section.title}</h3>
+                <h3 className="text-[22px] md:text-[28px] font-black">{section.title}</h3>
               </div>
               
-              <p className="text-[17px] text-gray-600 mb-10 leading-relaxed font-medium">
+              <p className="text-[14px] md:text-[17px] text-gray-600 mb-8 md:mb-10 leading-relaxed font-medium">
                 {section.content}
               </p>
 
-              <ul className="grid grid-cols-1 gap-4">
+              <ul className="grid grid-cols-1 gap-3 md:gap-4">
                 {section.details.map((detail, dIdx) => (
-                  <li key={dIdx} className="flex items-center gap-3 text-[14px] font-black text-gray-400">
+                  <li key={dIdx} className="flex items-center gap-3 text-[13px] md:text-[14px] font-black text-gray-400">
                     <ChevronRight className="w-4 h-4 text-brand" /> {detail}
                   </li>
                 ))}
@@ -86,14 +86,14 @@ export default function ServiceSecurityPage() {
           ))}
         </div>
 
-        <div className="mt-20 p-12 bg-zinc-900 rounded-[56px] text-white flex flex-col md:flex-row items-center justify-between gap-12 overflow-hidden relative">
+        <div className="mt-12 md:mt-20 p-8 md:p-12 bg-zinc-900 rounded-[32px] md:rounded-[56px] text-white flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-96 h-96 bg-brand/10 blur-[120px] pointer-events-none" />
           <div className="relative z-10 max-w-xl">
-             <h3 className="text-[32px] font-black mb-4">对服务标准有疑问？</h3>
-             <p className="text-white/40 text-[16px] font-medium leading-relaxed mb-8">
+             <h3 className="text-[24px] md:text-[32px] font-black mb-4">对服务标准有疑问？</h3>
+             <p className="text-white/40 text-[14px] md:text-[16px] font-medium leading-relaxed mb-8">
                您可以随时联系我们的交付专家，为您详细解释不同服务模式下的责任边界、收费细则及售后处理流程。
              </p>
-             <button className="px-10 py-5 bg-brand text-white rounded-[24px] text-[16px] font-black shadow-2xl shadow-brand/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+             <button className="w-full md:w-auto px-10 py-4 md:py-5 bg-brand text-white rounded-[20px] md:rounded-[24px] text-[15px] md:text-[16px] font-black shadow-2xl shadow-brand/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
                咨询专属顾问 <MessageSquare className="w-5 h-5" />
              </button>
           </div>
