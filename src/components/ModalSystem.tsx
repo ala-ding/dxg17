@@ -25,8 +25,8 @@ export default function ModalSystem({ type, isOpen, onClose, data, onToast }: Mo
         return (
           <div className="space-y-8">
             <div className="text-center">
-              <h2 className="text-[28px] font-black text-gray-800 tracking-tight">你想怎么开始？</h2>
-              <p className="text-gray-400 font-medium mt-2">可以让 AI 先帮你看，也可以从产品或灵感方案开始。</p>
+              <h2 className="text-[24px] md:text-[28px] font-black text-gray-800 tracking-tight">你想怎么开始？</h2>
+              <p className="text-[14px] md:text-[16px] text-gray-400 font-medium mt-2">可以让 AI 先帮你看，也可以从产品或灵感方案开始。</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                {[
@@ -63,8 +63,8 @@ export default function ModalSystem({ type, isOpen, onClose, data, onToast }: Mo
         return (
           <div className="space-y-8">
             <div className="text-center">
-              <h2 className="text-[28px] font-black text-gray-800 tracking-tight">选择目标方案</h2>
-              <p className="text-gray-400 font-medium mt-2">请选择将“{productName}”加入哪一个方案？</p>
+              <h2 className="text-[24px] md:text-[28px] font-black text-gray-800 tracking-tight">选择目标方案</h2>
+              <p className="text-[14px] md:text-[16px] text-gray-400 font-medium mt-2">请选择将“{productName}”加入哪一个方案？</p>
             </div>
             {plans.length > 0 ? (
               <div className="space-y-3">

@@ -219,7 +219,7 @@ function AppContent() {
                 {/* Mobile Menu Toggle */}
                 <button 
                   onClick={() => setIsMenuOpen(true)}
-                  className={`md:hidden h-7 w-7 rounded-full flex items-center justify-center border ${
+                  className={`md:hidden h-8 w-8 rounded-full flex items-center justify-center border ${
                     isLight ? 'bg-black/5 border-black/5 text-black' : 'bg-white/5 border-white/10 text-white'
                   }`}
                 >
@@ -248,32 +248,32 @@ function AppContent() {
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                 className="fixed right-0 top-0 bottom-0 w-[80%] max-w-[320px] bg-[#0F0F0F]/95 backdrop-blur-2xl z-[1001] md:hidden border-l border-white/10 p-6 flex flex-col"
               >
-                <div className="flex justify-between items-center mb-10">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-black text-[12px]">DXG</div>
-                    <span className="font-black text-white text-[16px]">菜单</span>
-                  </div>
-                  <button onClick={() => setIsMenuOpen(false)} className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                
-                <nav className="flex flex-col gap-2">
-                  {navItems.map((item) => (
-                    <Link 
-                      key={item.path} 
-                      to={item.path} 
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`text-[17px] font-bold py-3 px-4 rounded-2xl flex items-center justify-between group transition-all ${
-                        location.pathname === item.path ? 'bg-white/5 text-brand' : 'text-white/60 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      {item.label}
-                      <ChevronRight className={`w-4 h-4 transition-colors ${location.pathname === item.path ? 'text-brand' : 'text-white/10 group-hover:text-white/40'}`} />
-                    </Link>
-                  ))}
+            <div className="flex justify-between items-center mb-6 md:mb-10">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-black text-[12px]">DXG</div>
+                <span className="font-black text-white text-[18px]">菜单</span>
+              </div>
+              <button onClick={() => setIsMenuOpen(false)} className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <nav className="flex flex-col gap-1.5 md:gap-2">
+              {navItems.map((item) => (
+                <Link 
+                  key={item.path} 
+                  to={item.path} 
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`text-[16px] md:text-[17px] font-bold py-3 md:py-3 px-4 rounded-2xl flex items-center justify-between group transition-all ${
+                    location.pathname === item.path ? 'bg-white/5 text-brand' : 'text-white/60 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  {item.label}
+                  <ChevronRight className={`w-4 h-4 transition-colors ${location.pathname === item.path ? 'text-brand' : 'text-white/10 group-hover:text-white/40'}`} />
+                </Link>
+              ))}
                   
-                  <div className="h-px bg-white/10 my-4 mx-4" />
+                  <div className="h-px bg-white/10 my-3 md:my-4 mx-4" />
                   
                   <button 
                     onClick={async () => {
@@ -290,11 +290,11 @@ function AppContent() {
                         openModal('newPlan');
                       }
                     }}
-                    className="flex items-center justify-between text-[17px] font-bold text-brand py-3 px-4 rounded-2xl hover:bg-white/5 transition-all group"
+                    className="flex items-center justify-between text-[15px] md:text-[17px] font-bold text-brand py-2.5 md:py-3 px-4 rounded-2xl hover:bg-white/5 transition-all group"
                   >
                     <span>新建方案</span>
-                    <div className="w-6 h-6 rounded-full bg-brand/20 flex items-center justify-center">
-                      <Sparkles className="w-3.5 h-3.5" />
+                    <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-brand/20 flex items-center justify-center">
+                      <Sparkles className="w-3 md:w-3.5 h-3 md:h-3.5" />
                     </div>
                   </button>
                   
@@ -309,7 +309,7 @@ function AppContent() {
                         openModal('newPlan');
                       }
                     }}
-                    className="flex items-center justify-between text-[17px] font-bold text-white py-3 px-4 rounded-2xl hover:bg-white/5 transition-all group mt-2"
+                    className="flex items-center justify-between text-[15px] md:text-[17px] font-bold text-white py-2.5 md:py-3 px-4 rounded-2xl hover:bg-white/5 transition-all group mt-1 md:mt-2"
                   >
                     <span>AI 帮我配</span>
                     <Sparkles className="w-4 h-4 text-brand" />
@@ -431,8 +431,8 @@ function AppContent() {
               )}
             </AnimatePresence>
 
-            {/* AI Assistant Button (Main Button) */}
-            <div className="flex flex-col items-end gap-2 group/ai relative">
+            {/* AI Assistant Button (Main Button) - Bottom Safe Area Adjustment */}
+            <div className="flex flex-col items-end gap-2 group/ai relative md:mb-0 mb-4">
               <button 
                 onClick={() => {
                   const currentPath = location.pathname;
@@ -446,12 +446,12 @@ function AppContent() {
                     openModal('newPlan');
                   }
                 }}
-                className="h-12 md:h-14 pl-3 md:pl-4 pr-5 md:pr-7 bg-brand text-white rounded-full flex items-center gap-2 md:gap-3 shadow-2xl shadow-brand/30 hover:scale-105 active:scale-95 transition-all focus:outline-none group"
+                className="h-12 md:h-14 w-12 md:w-auto px-0 md:px-7 md:pl-4 bg-brand text-white rounded-full flex items-center justify-center md:justify-start gap-0 md:gap-3 shadow-2xl shadow-brand/30 hover:scale-105 active:scale-95 transition-all focus:outline-none group"
               >
-                <div className="w-8 h-8 md:w-9 md:h-9 bg-white/20 rounded-full flex items-center justify-center shadow-inner">
+                <div className="w-9 h-9 md:w-9 md:h-9 bg-white/20 rounded-full flex items-center justify-center shadow-inner shrink-0">
                   <Sparkles className="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-12 transition-transform" />
                 </div>
-                <span className="text-[13px] md:text-[15px] font-black tracking-tight">AI帮我看</span>
+                <span className="hidden md:block text-[15px] font-black tracking-tight">AI帮我看</span>
               </button>
             </div>
           </div>

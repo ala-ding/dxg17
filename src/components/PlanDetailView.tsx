@@ -224,7 +224,7 @@ export default function PlanDetailView({
   return (
     <div className="w-full space-y-10">
       {/* Tabs */}
-      <div className="flex border-b border-white/10 overflow-x-auto no-scrollbar">
+      <div className="flex border-b border-white/10 overflow-x-auto no-scrollbar scroll-smooth">
         {[
           { id: 'display', label: '方案展示' },
           { id: 'delivery', label: '服务与交付' },
@@ -234,7 +234,7 @@ export default function PlanDetailView({
           <button 
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-8 py-4 text-[16px] font-black transition-all relative whitespace-nowrap ${activeTab === tab.id ? 'text-brand' : 'text-white/40 hover:text-white pb-5'}`}
+            className={`px-6 md:px-8 py-3.5 md:py-4 text-[14px] md:text-[16px] font-black transition-all relative whitespace-nowrap ${activeTab === tab.id ? 'text-brand' : 'text-white/40 hover:text-white pb-4 md:pb-5'}`}
           >
             {tab.label}
             {activeTab === tab.id && (
@@ -257,64 +257,64 @@ export default function PlanDetailView({
               />
               
               {/* Product Hotspots Overlay */}
-              <div className="absolute inset-0 z-10 p-12">
+              <div className="absolute inset-0 z-10 p-6 md:p-12">
                  {allItems.slice(0, 2).map((p, i) => (
                    <div 
                      key={p.id} 
                      className="absolute group/dot"
                      style={{ top: i === 0 ? '45%' : '35%', left: i === 0 ? '30%' : 'auto', right: i === 1 ? '25%' : 'auto' }}
                    >
-                     <div className="w-8 h-8 rounded-full bg-brand/80 backdrop-blur-md border border-white/50 flex items-center justify-center animate-pulse cursor-pointer">
-                       <ShoppingBag className="w-4 h-4 text-white" />
+                     <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-brand/80 backdrop-blur-md border border-white/50 flex items-center justify-center animate-pulse cursor-pointer">
+                       <ShoppingBag className="w-3 h-3 md:w-4 md:h-4 text-white" />
                      </div>
-                     <div className="absolute top-10 left-0 bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 opacity-0 group-hover/dot:opacity-100 transition-opacity whitespace-nowrap z-20">
-                        <p className="text-[14px] font-black text-white">{p.name}</p>
-                        <p className="text-[12px] text-brand font-bold">¥{pricing.formatCurrency(p.price)}</p>
+                     <div className="absolute top-8 md:top-10 left-0 bg-black/80 backdrop-blur-xl p-3 md:p-4 rounded-xl md:rounded-2xl border border-white/10 opacity-0 group-hover/dot:opacity-100 transition-opacity whitespace-nowrap z-20">
+                        <p className="text-[12px] md:text-[14px] font-black text-white">{p.name}</p>
+                        <p className="text-[11px] md:text-[12px] text-brand font-bold">¥{pricing.formatCurrency(p.price)}</p>
                      </div>
                    </div>
                  ))}
               </div>
 
               {/* Info Overlay */}
-              <div className="absolute top-12 left-12 z-20">
-                  <div className="bg-black/60 backdrop-blur-2xl px-6 py-4 rounded-[28px] border border-white/10 text-left flex items-center justify-between min-w-[320px]">
+              <div className="absolute top-6 md:top-12 left-6 md:left-12 z-20 max-w-[calc(100%-48px)] md:max-w-none">
+                  <div className="bg-black/60 backdrop-blur-2xl px-4 md:px-6 py-3 md:py-4 rounded-[20px] md:rounded-[28px] border border-white/10 text-left flex items-center justify-between min-w-[240px] md:min-w-[320px]">
                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                           <Sparkles className="w-5 h-5 text-brand" />
-                           <span className="text-[13px] font-black text-white/40 uppercase tracking-widest">AI Space Simulation</span>
+                        <div className="flex items-center gap-2 md:gap-3 mb-0.5 md:mb-1">
+                           <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-brand" />
+                           <span className="text-[11px] md:text-[13px] font-black text-white/40 uppercase tracking-widest leading-none">AI Space Simulation</span>
                         </div>
-                        <h3 className="text-[24px] font-bold text-white italic font-serif">{plan.name || '未命名方案'}</h3>
+                        <h3 className="text-[18px] md:text-[24px] font-bold text-white italic font-serif truncate max-w-[180px] md:max-w-none">{plan.name || '未命名方案'}</h3>
                      </div>
-                     <div className="flex items-center gap-2 ml-8 pl-8 border-l border-white/10">
+                     <div className="flex items-center gap-1.5 md:gap-2 ml-4 md:ml-8 pl-4 md:pl-8 border-l border-white/10">
                         <button 
                           onClick={() => onRename?.()}
-                          className="p-3 bg-white/5 hover:bg-brand/20 text-white/40 hover:text-brand rounded-2xl transition-all"
+                          className="p-2 md:p-3 bg-white/5 hover:bg-brand/20 text-white/40 hover:text-brand rounded-xl md:rounded-2xl transition-all"
                           title="修改名称"
                         >
-                          <Edit3 className="w-5 h-5" />
+                          <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                         <button 
                           onClick={() => onDelete?.()}
-                          className="p-3 bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-500 rounded-2xl transition-all"
+                          className="p-2 md:p-3 bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-500 rounded-xl md:rounded-2xl transition-all"
                           title="删除方案"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                      </div>
                   </div>
               </div>
 
-              <div className="absolute bottom-12 left-12 z-20 flex flex-col items-start text-left">
-                  <div className="flex items-center gap-4 bg-black/40 backdrop-blur-md p-4 rounded-3xl border border-white/5 mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg">
-                      <Palette className="w-6 h-6" />
+              <div className="absolute bottom-6 md:bottom-12 left-6 md:left-12 z-20 flex flex-col items-start text-left max-w-[calc(100%-48px)]">
+                  <div className="flex items-center gap-3 md:gap-4 bg-black/40 backdrop-blur-md p-3 md:p-4 rounded-2xl md:rounded-3xl border border-white/5 mb-4 md:mb-6">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg">
+                      <Palette className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
                     <div className="text-left">
-                      <p className="text-[14px] font-black text-white">方案匹配度</p>
-                      <p className="text-[12px] text-white/40 font-bold">已关联 {allItems.length} 件配套单品</p>
+                      <p className="text-[12px] md:text-[14px] font-black text-white">方案匹配度</p>
+                      <p className="text-[10px] md:text-[12px] text-white/40 font-bold">已关联 {allItems.length} 件配套单品</p>
                     </div>
                   </div>
-                  <h2 className="text-[36px] font-black text-white leading-tight drop-shadow-2xl">
+                  <h2 className="text-[24px] md:text-[36px] font-black text-white leading-tight drop-shadow-2xl max-w-[90vw]">
                     追求通透感与金属质感的平衡
                   </h2>
               </div>
@@ -323,7 +323,7 @@ export default function PlanDetailView({
             <div className="flex justify-end pt-4">
               <button 
                 onClick={() => setActiveTab('delivery')}
-                className="px-12 py-5 bg-brand text-white rounded-full font-black text-[16px] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+                className="w-full md:w-auto px-10 md:px-12 py-4 md:py-5 bg-brand text-white rounded-full font-black text-[15px] md:text-[16px] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
               >
                 下一步：配置服务与交付 <ArrowRight className="w-5 h-5" />
               </button>

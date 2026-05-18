@@ -194,9 +194,61 @@ export default function HousePlanPreview({
 
   const handleLevelChange = (newLevel: number) => {
     if (newLevel >= 1 && newLevel <= 10) {
+      if (newLevel !== currentLevel && navigator.vibrate) {
+        try {
+          navigator.vibrate(8);
+        } catch (e) {
+          // Ignore vibration errors
+        }
+      }
       setCurrentLevel(newLevel);
     }
   };
+
+  // Mobile wheel drag handling
+  const wheelRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const startLevel = useRef(0);
+
+  useEffect(() => {
+    const wheel = wheelRef.current;
+    if (!wheel) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      isDragging.current = true;
+      startY.current = e.touches[0].clientY;
+      startLevel.current = currentLevel;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging.current) return;
+      if (e.cancelable) e.preventDefault(); // Stop page scroll
+      
+      const deltaY = startY.current - e.touches[0].clientY;
+      const stepHeight = 24; // Precision for 260px container
+      const levelDelta = Math.round(deltaY / stepHeight);
+      const nextLevel = Math.max(1, Math.min(10, startLevel.current + levelDelta));
+      
+      if (nextLevel !== currentLevel) {
+        handleLevelChange(nextLevel);
+      }
+    };
+
+    const onTouchEnd = () => {
+      isDragging.current = false;
+    };
+
+    wheel.addEventListener('touchstart', onTouchStart, { passive: false });
+    wheel.addEventListener('touchmove', onTouchMove, { passive: false });
+    wheel.addEventListener('touchend', onTouchEnd);
+
+    return () => {
+      wheel.removeEventListener('touchstart', onTouchStart);
+      wheel.removeEventListener('touchmove', onTouchMove);
+      wheel.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [currentLevel]);
 
   const triggerRubberBand = (dir: 'top' | 'bottom') => {
     setRubberBand(dir);
@@ -344,17 +396,17 @@ export default function HousePlanPreview({
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="absolute bottom-10 md:bottom-20 left-6 md:left-20 z-50 pointer-events-auto w-[calc(100%-48px)] md:w-auto"
+        className="absolute bottom-10 md:bottom-20 left-6 md:left-20 z-50 pointer-events-auto w-[calc(100%-100px)] md:w-auto"
       >
-        <div className="flex flex-col gap-4 md:gap-4">
+        <div className="flex flex-col gap-4 md:gap-4 text-left">
            <div className="flex items-center gap-4 md:gap-6">
               <h2 className="text-[44px] md:text-[64px] font-black tracking-tighter leading-none text-white">{currentFloor.budget}</h2>
               <div className="h-8 md:h-10 w-px bg-white/20" />
               <div className="flex flex-col">
-                 <span className="text-[16px] md:text-[20px] font-black text-brand uppercase tracking-wider">
+                 <span className="text-[18px] md:text-[20px] font-black text-brand uppercase tracking-wider">
                    {budgetLevelMap[currentFloor.budget]?.title || currentFloor.name}
                  </span>
-                 <span className="text-[11px] md:text-[12px] font-medium text-white/40 uppercase tracking-[0.2em]">
+                 <span className="text-[13px] md:text-[12px] font-medium text-white/40 uppercase tracking-[0.2em]">
                    {budgetLevelMap[currentFloor.budget]?.subtitle || currentFloor.value}
                  </span>
               </div>
@@ -368,17 +420,17 @@ export default function HousePlanPreview({
                   scale: (showDetails || showAI) ? 0.9 : 1
                 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 w-full md:w-auto"
+                className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 md:gap-4 w-full md:w-auto"
               >
                   <button 
                     onClick={() => togglePanel('plan')}
-                    className="px-6 md:px-8 h-12 md:h-12 bg-white text-black rounded-full text-[13px] md:text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                    className="px-6 md:px-8 h-11 md:h-12 bg-white text-black rounded-full text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
                   >
                     查看方案概览 <ChevronRight className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => setShowChecklistModal(true)}
-                    className="px-6 md:px-8 h-12 md:h-12 bg-brand text-white rounded-full text-[13px] md:text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                    className="px-6 md:px-8 h-11 md:h-12 bg-brand text-white rounded-full text-[14px] font-bold shadow-2xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
                   >
                     查看完整清单 <ShoppingBag className="w-4 h-4" />
                   </button>
@@ -450,7 +502,7 @@ export default function HousePlanPreview({
         </div>
       </motion.div>
 
-      {/* Budget Tuner Rail (Right) - Hidden on Mobile */}
+      {/* Budget Tuner Rail (Right) - Desktop Version */}
       <div className="hidden md:flex absolute right-12 top-1/2 -translate-y-1/2 z-50 flex-col items-center gap-3">
          <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-4 [writing-mode:vertical-lr]">Budget Levels</span>
          <div className="w-[1px] h-[300px] bg-white/10 relative">
@@ -480,14 +532,57 @@ export default function HousePlanPreview({
          </div>
       </div>
 
-      {/* Style Toggle (Top Center) - Readable Glassmorphism Design */}
+      {/* Budget Ladder Wheel - Mobile Version (Localized to this section) */}
+      <div 
+        className="md:hidden absolute right-3 top-1/2 -translate-y-1/2 z-[60] flex flex-col items-center select-none"
+      >
+        <div 
+          ref={wheelRef}
+          className="relative w-[38px] h-[260px] bg-[#141414]/32 backdrop-blur-[18px] saturate-[140%] border border-white/14 rounded-full flex flex-col items-center justify-between py-6 shadow-2xl"
+        >
+          {FLOORS.slice().reverse().map((f) => {
+            const isActive = f.level === currentLevel;
+            return (
+              <button
+                key={f.level}
+                onClick={() => handleLevelChange(f.level)}
+                className="relative w-full h-5 flex items-center justify-center"
+              >
+                <div className="absolute inset-0 z-0" /> {/* Larger touch target */}
+                <motion.div 
+                  animate={{ 
+                    scale: isActive ? 1.4 : 1,
+                    backgroundColor: isActive ? '#00B6AD' : 'rgba(255,255,255,0.14)',
+                    boxShadow: isActive ? '0 0 12px rgba(0,182,173,0.6)' : 'none'
+                  }}
+                  className={`${isActive ? 'w-2.5 h-2.5' : 'w-1.5 h-1.5'} rounded-full transition-all duration-300`}
+                />
+                
+                {isActive && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="absolute right-10 py-1.5 px-3 bg-brand/90 backdrop-blur-md rounded-lg whitespace-nowrap shadow-xl"
+                  >
+                    <span className="text-[12px] font-black text-white">{f.budget}</span>
+                    <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-brand/90 rotate-45 rounded-sm" />
+                  </motion.div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-[8px] font-black text-white/10 uppercase tracking-[0.2em] mt-3 [writing-mode:vertical-lr]">Scroll</span>
+      </div>
+
+      {/* Style Toggle (Top Center) - Scrollable Horizontal Tabs */}
       <div 
         className="
           absolute top-20 md:top-24 left-1/2 -translate-x-1/2 z-50 
           flex items-center gap-1.5 p-1.5 md:p-2 bg-black/45 backdrop-blur-xl 
           border border-white/20 rounded-full
           shadow-[0_10px_40px_rgba(0,0,0,0.35)]
-          max-w-[calc(100vw-32px)] overflow-x-auto no-scrollbar
+          w-[calc(100vw-32px)] md:w-auto overflow-x-auto scrollbar-hide
         "
       >
          {STYLE_TAGS.map(style => (
@@ -495,7 +590,7 @@ export default function HousePlanPreview({
              key={style}
              onClick={() => setCurrentStyle(style as StyleTag)}
              className={`
-               h-9 md:h-11 px-4 md:px-6 rounded-full text-[12px] md:text-[14px] font-bold transition-all whitespace-nowrap flex items-center justify-center
+               h-8 md:h-11 px-4 md:px-6 rounded-full text-[13px] md:text-[14px] font-bold transition-all whitespace-nowrap flex items-center justify-center
                ${currentStyle === style 
                  ? 'bg-white text-black shadow-lg' 
                  : 'text-white/90 hover:bg-white/15 hover:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]'

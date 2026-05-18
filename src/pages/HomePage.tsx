@@ -76,11 +76,11 @@ export default function HomePage({
           <div className="inline-flex items-center gap-2 px-4 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[12px] font-black tracking-widest text-brand mb-8 uppercase">
             Designed by DXG AI
           </div>
-          <h1 className="text-[40px] md:text-[88px] font-medium tracking-tight leading-tight mb-6 md:mb-8">
+          <h1 className="text-[36px] md:text-[88px] font-medium tracking-tight leading-[1.1] mb-6 md:mb-8 max-w-[90vw] mx-auto">
             先看见家，<br />
             再决定预算。
           </h1>
-          <p className="text-[16px] md:text-[22px] text-white/60 font-light max-w-2xl mx-auto leading-relaxed mb-10 md:mb-12">
+          <p className="text-[14px] md:text-[22px] text-white/60 font-light max-w-[85vw] md:max-w-2xl mx-auto leading-relaxed mb-10 md:mb-12">
             用 AI 预览不同预算下的全屋空间效果，<br />
             快速找到真正适合你的家具配置。
           </p>
@@ -271,10 +271,10 @@ export default function HomePage({
             <Sparkles className="w-3.5 h-3.5 text-brand" />
             AI 家居顾问
           </div>
-          <h2 className="text-[36px] md:text-[72px] font-medium tracking-tight mb-6 md:mb-8">
+          <h2 className="text-[28px] md:text-[72px] font-medium tracking-tight mb-6 md:mb-8 leading-[1.15]">
             让 AI 生成真正<br />适合你的家。
           </h2>
-          <p className="text-[16px] md:text-[22px] text-white/50 font-light max-w-2xl mx-auto leading-relaxed mb-10 md:mb-12">
+          <p className="text-[15px] md:text-[22px] text-white/50 font-light max-w-[90vw] md:max-w-2xl mx-auto leading-relaxed mb-10 md:mb-12">
             上传户型、预算或喜欢的图片，<br />
             获得可落地的全屋配置建议。
           </p>
