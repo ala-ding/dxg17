@@ -44,7 +44,8 @@ export default function HousePlanPreview({
   const [showPlanSummary, setShowPlanSummary] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [newPlanName, setNewPlanName] = useState('');
   const lastScrollTime = useRef(0);
   const [rubberBand, setRubberBand] = useState<'top' | 'bottom' | null>(null);
   
@@ -89,10 +90,16 @@ export default function HousePlanPreview({
     { label: '全屋定制软装', value: 30, color: '#818CF8', desc: '材质深度交互与艺术收藏' },
   ];
 
-  const handleLevelChange = (newLevel: number) => { if (newLevel >= 1 && newLevel <= 10) setCurrentLevel(newLevel); };
+  const handleLevelChange = (newLevel: number) => { 
+    if (newLevel >= 1 && newLevel <= 10) {
+      setCurrentLevel(newLevel); 
+    }
+  };
+  
+  const nextLevel = () => { if (currentLevel < 10) handleLevelChange(currentLevel + 1); };
+  const prevLevel = () => { if (currentLevel > 1) handleLevelChange(currentLevel - 1); };
+
   const triggerRubberBand = (dir: 'top' | 'bottom') => { setRubberBand(dir); setTimeout(() => setRubberBand(null), 300); };
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-  const [newPlanName, setNewPlanName] = useState('');
 
   const generatePlanFromCase = async () => {
     try {
@@ -105,70 +112,169 @@ export default function HousePlanPreview({
   };
 
   useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (!isHovered) return;
-      e.preventDefault();
-      const now = Date.now();
-      if (now - lastScrollTime.current < 800) return;
-      if (e.deltaY > 20) {
-        if (currentLevel === 1) triggerRubberBand('top');
-        else handleLevelChange(currentLevel - 1);
-        lastScrollTime.current = now;
-      } else if (e.deltaY < -20) {
-        if (currentLevel === 10) triggerRubberBand('bottom');
-        else handleLevelChange(currentLevel + 1);
-        lastScrollTime.current = now;
+    // Hide global floating buttons when this section is active
+    const fabContainer = document.querySelector('.fixed.bottom-6.right-4');
+    if (fabContainer) {
+      if (window.innerWidth < 1024) {
+        (fabContainer as HTMLElement).style.display = 'none';
+      } else {
+        // On desktop, we might want to keep or hide it, user says "recommended to hide"
+        (fabContainer as HTMLElement).style.display = 'none';
       }
+    }
+    return () => {
+      if (fabContainer) (fabContainer as HTMLElement).style.display = 'flex';
     };
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
-  }, [currentLevel, isHovered]);
+  }, []);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-black overflow-hidden text-left">
+    <div id="house-plan-preview-container" className="relative w-full min-h-screen md:h-screen flex flex-col items-center justify-start md:justify-center bg-black overflow-x-hidden text-left py-0 md:py-0">
       <AnimatePresence mode="wait">
-        <motion.div key={currentStyle+currentLevel} initial={{ opacity: 0 }} animate={{ opacity: 0.15 }} exit={{ opacity: 0 }} transition={{ duration: 1.5 }} className="absolute inset-0 z-0 bg-cover bg-center blur-[100px] scale-110 pointer-events-none" style={{ backgroundImage: `url("${SCENE_IMAGES[currentStyle][currentLevel].image}")` }} />
+        <motion.div 
+          key={currentStyle+currentLevel} 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 0.2 }} 
+          exit={{ opacity: 0 }} 
+          transition={{ duration: 1.5 }} 
+          className="absolute inset-0 z-0 bg-cover bg-center blur-[120px] scale-125 pointer-events-none" 
+          style={{ backgroundImage: `url("${SCENE_IMAGES[currentStyle][currentLevel].image}")` }} 
+        />
       </AnimatePresence>
 
-      <motion.div animate={rubberBand === 'top' ? { y: 20 } : rubberBand === 'bottom' ? { y: -20 } : { y: 0 }} className="relative z-10 w-full h-full md:max-w-[90vw] md:max-h-[85vh] flex items-center justify-center pointer-events-none">
-        <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative w-full h-full md:rounded-[48px] overflow-hidden shadow-2xl border border-white/5 pointer-events-auto">
+      {/* Style Tabs - Sticky on Mobile, Top on Desktop */}
+      <div className="sticky top-[64px] md:absolute md:top-16 lg:top-24 left-0 right-0 z-50 px-6 py-4 md:py-0 bg-black/60 backdrop-blur-2xl md:bg-transparent md:backdrop-blur-none border-b border-white/5 md:border-none flex items-center justify-center">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
+          <div className="flex items-center gap-1.5 p-1 bg-white/5 md:bg-black/40 backdrop-blur-xl md:border md:border-white/10 rounded-full md:shadow-2xl">
+            {STYLE_TAGS.map(style => (
+              <button 
+                key={style} 
+                onClick={() => setCurrentStyle(style as StyleTag)} 
+                className={`h-9 px-5 md:h-10 md:px-6 rounded-full text-[12px] md:text-[13px] font-black transition-all whitespace-nowrap ${currentStyle === style ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+              >
+                {style}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="relative z-10 w-full h-full flex flex-col md:flex-row items-center justify-center p-0 md:p-12 lg:px-24 md:py-16 lg:py-24">
+        {/* Navigation Arrows - Desktop */}
+        <button 
+          onClick={prevLevel}
+          disabled={currentLevel === 1}
+          className={`hidden md:flex absolute left-8 lg:left-12 xl:left-24 top-1/2 -translate-y-1/2 w-14 h-14 lg:w-16 lg:h-16 bg-white/5 border border-white/10 rounded-full items-center justify-center text-white transition-all z-50 ${currentLevel === 1 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-white/10 hover:border-brand hover:text-brand shadow-[0_0_20px_rgba(0,0,0,0.5)]'}`}
+        >
+          <ArrowLeft className="w-6 h-6 lg:w-8 lg:h-8" />
+        </button>
+
+        <button 
+          onClick={nextLevel}
+          disabled={currentLevel === 10}
+          className={`hidden md:flex absolute right-8 lg:right-12 xl:right-24 top-1/2 -translate-y-1/2 w-14 h-14 lg:w-16 lg:h-16 bg-white/5 border border-white/10 rounded-full items-center justify-center text-white transition-all z-50 ${currentLevel === 10 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-white/10 hover:border-brand hover:text-brand shadow-[0_0_20px_rgba(0,0,0,0.5)]'}`}
+        >
+          <ArrowRight className="w-6 h-6 lg:w-8 lg:h-8" />
+        </button>
+
+        {/* Swipeable Carousel Container */}
+        <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden">
           <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div key={currentLevel + currentStyle} initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.8 }} className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url("${SCENE_IMAGES[currentStyle][currentLevel].image}")` }}>
-              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-transparent to-transparent pointer-events-none" />
+            <motion.div 
+               key={currentLevel + currentStyle}
+               initial={{ opacity: 0, x: 100, scale: 0.95 }}
+               animate={{ opacity: 1, x: 0, scale: 1 }}
+               exit={{ opacity: 0, x: -100, scale: 0.95 }}
+               transition={{ type: 'spring', damping: 25, stiffness: 120 }}
+               drag="x"
+               dragConstraints={{ left: 0, right: 0 }}
+               onDragEnd={(_, info) => {
+                 if (info.offset.x > 80) prevLevel();
+                 else if (info.offset.x < -80) nextLevel();
+               }}
+               className="w-full h-full flex flex-col md:flex-row items-center justify-center gap-0 md:gap-12 lg:gap-20 px-0 md:px-0"
+            >
+               {/* Main Display Card */}
+               <div className="relative w-full aspect-[16/10] sm:aspect-[4/3] md:aspect-auto md:w-[50vw] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] md:rounded-[40px] lg:rounded-[56px] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/5 group bg-[#0A0A0A] shrink-0 mx-0 md:mx-0 rounded-[20px] max-w-[calc(100vw-32px)]">
+                  <div className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105" style={{ backgroundImage: `url("${SCENE_IMAGES[currentStyle][currentLevel].image}")` }}>
+                    <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                  </div>
+
+                  {/* Desktop Title Overlay */}
+                  <div className="absolute top-8 left-8 lg:top-12 lg:left-12 z-20 hidden md:block">
+                     <div className="bg-black/60 backdrop-blur-xl px-6 py-4 lg:px-8 lg:py-5 rounded-[32px] lg:rounded-[40px] border border-white/10 shadow-2xl">
+                        <span className="text-brand text-[10px] lg:text-[12px] font-black uppercase tracking-[0.3em] block mb-1">Budget Ladder</span>
+                        <h3 className="text-white text-[22px] lg:text-[28px] font-black italic tracking-tighter leading-none">{budgetLevelMap[currentFloor.budget]?.title}</h3>
+                     </div>
+                  </div>
+
+                  {/* Navigation Helper - Bottom Arrows for Mobile */}
+                  <div className="md:hidden absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 pointer-events-none z-30">
+                    <button onClick={prevLevel} className={`w-10 h-10 bg-black/40 backdrop-blur-md rounded-full items-center justify-center text-white pointer-events-auto ${currentLevel === 1 ? 'opacity-0' : 'flex'}`}><ArrowLeft className="w-5 h-5" /></button>
+                    <button onClick={nextLevel} className={`w-10 h-10 bg-black/40 backdrop-blur-md rounded-full items-center justify-center text-white pointer-events-auto ${currentLevel === 10 ? 'opacity-0' : 'flex'}`}><ArrowRight className="w-5 h-5" /></button>
+                  </div>
+               </div>
+
+               {/* Info & Content Column */}
+               <div className="w-full md:w-[280px] lg:w-[350px] xl:w-[400px] mt-6 md:mt-0 flex flex-col gap-5 md:gap-8 lg:gap-10 text-left h-auto md:h-full justify-center px-4 md:px-0 max-w-[calc(100vw-32px)]">
+                  <div className="flex flex-col gap-1 md:gap-2">
+                     <div className="flex items-center gap-3">
+                        <span className="text-brand text-[13px] md:text-[14px] font-black uppercase tracking-[0.2em]">{currentStyle}风格</span>
+                        <div className="h-px w-8 md:w-12 bg-white/10" />
+                        <span className="text-white/30 text-[10px] md:text-[12px] font-bold uppercase tracking-widest">{budgetLevelMap[currentFloor.budget]?.subtitle}</span>
+                     </div>
+                     <h2 className="text-[44px] md:text-[56px] lg:text-[72px] xl:text-[88px] font-black tracking-tighter leading-none text-white italic">{currentFloor.budget}</h2>
+                     <p className="text-white/60 text-[13px] md:text-[15px] lg:text-[16px] xl:text-[18px] font-medium italic mt-1 md:mt-2">极致性价比下的空间魔法，精选全球供应链，让每一分预算均有所见。</p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 md:gap-4 lg:gap-5">
+                     <div className="grid grid-cols-2 gap-3">
+                        <button onClick={() => togglePanel('plan')} className="h-12 md:h-14 lg:h-16 xl:h-20 bg-white text-black rounded-[16px] md:rounded-[24px] font-black text-[14px] md:text-[15px] lg:text-[16px] shadow-xl flex items-center justify-center gap-2 hover:bg-brand hover:text-white transition-all transform active:scale-95">方案概览 <ChevronRight className="w-4 h-4 md:w-5 md:h-5" /></button>
+                        <button onClick={() => setShowChecklistModal(true)} className="h-12 md:h-14 lg:h-16 xl:h-20 bg-brand text-white rounded-[16px] md:rounded-[24px] font-black text-[14px] md:text-[15px] lg:text-[16px] shadow-xl flex items-center justify-center gap-2 hover:brightness-110 transition-all transform active:scale-95">完整清单 <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" /></button>
+                     </div>
+                     <div className="flex gap-3">
+                        <button onClick={() => togglePanel('details')} className={`flex-1 flex items-center justify-center gap-2 h-11 md:h-12 lg:h-14 rounded-[16px] md:rounded-[24px] text-[11px] md:text-[13px] lg:text-[14px] font-bold transition-all ${showDetails ? 'bg-brand/20 text-brand border border-brand/50' : 'bg-white/5 text-white/60 border border-white/5 hover:bg-white/10'}`}><Info className="w-4 h-4 md:w-5 md:h-5" /> 空间权重</button>
+                        <button onClick={() => togglePanel('ai')} className={`flex-1 flex items-center justify-center gap-2 h-11 md:h-12 lg:h-14 rounded-[16px] md:rounded-[24px] text-[11px] md:text-[13px] lg:text-[14px] font-bold transition-all ${showAI ? 'bg-brand/20 text-brand border border-brand/50' : 'bg-white/5 text-white/60 border border-white/5 hover:bg-white/10'}`}><Sparkles className="w-4 h-4 md:w-5 md:h-5" /> AI 点评</button>
+                     </div>
+                  </div>
+
+                  {/* Horizontal Budget Dots Indicator */}
+                  <div className="flex items-center gap-3 pt-6 border-t border-white/5 mb-10 md:mb-0">
+                     <span className="text-[10px] font-black text-white/20 uppercase tracking-widest mr-2 leading-none">Ladder Level</span>
+                     <div className="flex gap-2">
+                        {FLOORS.map(f => (
+                          <button 
+                            key={f.level} 
+                            onClick={() => handleLevelChange(f.level)} 
+                            className={`w-2 md:w-3 h-2 md:h-3 rounded-full transition-all ${f.level === currentLevel ? 'bg-brand w-6 md:w-10' : 'bg-white/10 hover:bg-white/30'}`}
+                          />
+                        ))}
+                     </div>
+                  </div>
+               </div>
             </motion.div>
           </AnimatePresence>
         </div>
-      </motion.div>
-
-      {/* Style Toggle */}
-      <div className="absolute top-20 md:top-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl max-w-[calc(100vw-32px)] overflow-x-auto no-scrollbar">
-         {STYLE_TAGS.map(style => (
-           <button key={style} onClick={() => setCurrentStyle(style as StyleTag)} className={`h-8 md:h-10 px-4 md:px-6 rounded-full text-[12px] md:text-[13px] font-black transition-all whitespace-nowrap ${currentStyle === style ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}>{style}</button>
-         ))}
       </div>
 
-      {/* Info Meta */}
-      <motion.div key={currentLevel+currentStyle+'meta'} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="fixed md:absolute bottom-8 md:bottom-20 left-6 md:left-20 z-50 pointer-events-auto">
-        <div className="flex flex-col gap-4 md:gap-6">
-           <div className="flex items-center gap-4 md:gap-6">
-              <h2 className="text-[32px] md:text-[64px] font-black tracking-tighter leading-none text-white italic">{currentFloor.budget}</h2>
-              <div className="h-8 md:h-12 w-px bg-white/10" />
-              <div className="flex flex-col">
-                 <span className="text-[14px] md:text-[18px] font-black text-brand uppercase tracking-[0.2em]">{budgetLevelMap[currentFloor.budget]?.title || currentFloor.name}</span>
-                 <span className="text-[10px] md:text-[11px] font-medium text-white/30 uppercase tracking-widest">{budgetLevelMap[currentFloor.budget]?.subtitle || currentFloor.value}</span>
-              </div>
-           </div>
-           
-           <div className="flex flex-wrap items-center gap-2 md:gap-4 max-w-[calc(100vw-48px)] overflow-x-auto no-scrollbar pb-2">
-              <button onClick={() => togglePanel('plan')} className="px-5 md:px-8 h-10 md:h-12 bg-white text-black rounded-full text-[12px] md:text-[14px] font-black shadow-2xl active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap">方案概览 <ChevronRight className="w-4 h-4" /></button>
-              <button onClick={() => setShowChecklistModal(true)} className="px-5 md:px-8 h-10 md:h-12 bg-brand text-white rounded-full text-[12px] md:text-[14px] font-black shadow-2xl active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap">完整清单 <ShoppingBag className="w-4 h-4" /></button>
-              <button onClick={() => togglePanel('details')} className={`flex items-center gap-2 px-4 h-9 md:h-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full text-[12px] whitespace-nowrap transition-all ${showDetails ? 'bg-brand/20 text-brand border-brand/20' : 'text-white'}`}><Info className="w-3.5 h-3.5" /> 空间权重</button>
-              <button onClick={() => togglePanel('ai')} className={`flex items-center gap-2 px-4 h-9 md:h-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full text-[12px] whitespace-nowrap transition-all ${showAI ? 'bg-brand/20 text-brand border-brand/20' : 'text-white'}`}><Sparkles className="w-3.5 h-3.5" /> AI 点评</button>
-           </div>
-        </div>
-      </motion.div>
+      {/* Desktop Vertical Ladder Helper (Redesigned) */}
+      <div className="hidden xl:flex absolute right-12 top-1/2 -translate-y-1/2 z-50 flex-col items-center gap-3">
+         <div className="w-[2px] h-[400px] bg-white/5 relative rounded-full">
+            <div className="absolute top-0 bottom-0 left-[-4px] right-[-4px] flex flex-col justify-between py-4">
+               {FLOORS.slice().reverse().map(f => (
+                 <button 
+                   key={f.level} 
+                   onClick={() => handleLevelChange(f.level)} 
+                   className={`group relative flex items-center justify-end transition-all h-8 pr-4`}
+                 >
+                   <span className={`text-[10px] font-black uppercase tracking-widest mr-4 transition-all ${f.level === currentLevel ? 'text-brand opacity-100' : 'text-white/20 opacity-0 group-hover:opacity-100'}`}>{f.budget}</span>
+                   <div className={`w-2 h-2 rounded-full border-2 transition-all ${f.level === currentLevel ? 'bg-brand border-brand scale-150' : 'bg-transparent border-white/20 group-hover:border-white/60'}`} />
+                 </button>
+               ))}
+            </div>
+         </div>
+      </div>
 
-      {/* Panels */}
+      {/* Panels (Details/AI) - Moved to bottom for better mobile reach */}
       <AnimatePresence>
         {showDetails && (
           <motion.div initial={window.innerWidth > 768 ? { x: -460, opacity: 0 } : { y: '100%', opacity: 0 }} animate={window.innerWidth > 768 ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }} exit={window.innerWidth > 768 ? { x: -460, opacity: 0 } : { y: '100%', opacity: 0 }} className="fixed md:absolute left-0 md:left-8 top-auto md:top-1/2 md:-translate-y-1/2 bottom-0 md:bottom-auto z-[100] w-full md:w-[460px] p-8 md:p-10 bg-black/80 backdrop-blur-3xl md:rounded-[40px] rounded-t-[32px] border-t md:border border-white/10 shadow-2xl text-left">

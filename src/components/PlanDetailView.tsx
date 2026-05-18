@@ -175,6 +175,13 @@ export default function PlanDetailView({
   const currentPricing = calculateOrderPricing({ items: allItems as any[], membership, serviceMode, logisticsLevel, afterSalesLevel, installationLevel, designLevel });
   const isConfirmed = plan.status === 'completed' || (plan.status as string) === 'confirmed';
 
+  const getAiAdvice = () => {
+    const comp = plan.completion || 0;
+    if (comp < 30) return "方案目前非常空。建议至少先完善主卧和客厅的核心家具，以便 AI 进行初步风格锁定。";
+    if (comp < 60) return "当前的搭配逻辑已经初见端倪。空间中还缺少一些氛围灯具和地毯，这些是提升高级感的关键。";
+    return "非常完美的方案！这套搭配目前在 3-5 万预算内极具性价比，品牌溢价与材质表现达到了高平衡点。";
+  };
+
   return (
     <div className="w-full space-y-8 md:space-y-10">
       <div className="flex border-b border-white/10 overflow-x-auto no-scrollbar -mx-6 px-6">
