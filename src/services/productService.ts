@@ -61,15 +61,31 @@ export const productService = {
   },
 
   getFallbackProducts(filters?: any): Product[] {
-    let filtered = MOCK_PRODUCTS.map(p => ({
-      ...p,
-      factory_price: p.price, // Base factory price
-      standard_service_price: Math.round(p.price * 1.2), // Standard platform price (20% up)
-      status: 'active' as any,
-      created_at: new Date().toISOString(),
-      specs: {},
-      images: [p.image]
-    })) as unknown as Product[];
+    const localData = localStorage.getItem('dxg_admin_products');
+    let products: Product[] = [];
+    
+    if (localData) {
+      try {
+        products = JSON.parse(localData);
+      } catch (e) {
+        console.error('Local data parse error', e);
+      }
+    }
+    
+    if (products.length === 0) {
+      products = MOCK_PRODUCTS.map(p => ({
+        ...p,
+        factory_price: p.price, // Base factory price
+        standard_service_price: Math.round(p.price * 1.2), // Standard platform price (20% up)
+        status: 'active' as any,
+        created_at: new Date().toISOString(),
+        specs: {},
+        images: [p.image]
+      })) as unknown as Product[];
+      this.saveLocalProducts(products);
+    }
+
+    let filtered = [...products];
 
     if (filters?.category && filters.category !== '全部') {
       filtered = filtered.filter(p => p.category === filters.category);
@@ -109,7 +125,18 @@ export const productService = {
       if (error) throw error;
       return data;
     }
-    return { ...product, id: `local-${Date.now()}` } as Product;
+    
+    const newProduct = { 
+      ...product, 
+      id: product.id || `local-${Date.now()}`,
+      created_at: new Date().toISOString(),
+      status: product.status || 'active'
+    } as Product;
+    
+    const products = this.getFallbackProducts();
+    this.saveLocalProducts([newProduct, ...products]);
+    
+    return newProduct;
   },
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
@@ -118,7 +145,12 @@ export const productService = {
       if (error) throw error;
       return data;
     }
-    return { ...updates, id } as Product;
+    
+    const products = this.getFallbackProducts();
+    const updated = products.map(p => p.id === id ? { ...p, ...updates } : p);
+    this.saveLocalProducts(updated);
+    
+    return updated.find(p => p.id === id) || { ...updates, id } as Product;
   },
 
   async deleteProduct(id: string): Promise<boolean> {
@@ -127,7 +159,14 @@ export const productService = {
       if (error) throw error;
       return true;
     }
+    
+    const products = this.getFallbackProducts();
+    this.saveLocalProducts(products.filter(p => p.id !== id));
     return true;
+  },
+
+  saveLocalProducts(products: Product[]) {
+    localStorage.setItem('dxg_admin_products', JSON.stringify(products));
   },
 
   async getProductById(id: string): Promise<Product | null> {

@@ -128,6 +128,12 @@ export interface Plan {
   service_fee: number;
   delivery_fee: number;
   grand_total: number;
+  unlock_status?: {
+    unlocked: boolean;
+    type?: 'basic' | 'professional';
+    unlocked_at?: string;
+    order_id?: string;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -166,6 +172,8 @@ export interface Lead {
   created_at: string;
 }
 
+export type OrderType = 'membership' | 'plan_list_unlock' | 'product_order' | 'service_order';
+
 export interface Order {
   id: string;
   user_id?: string;
@@ -173,20 +181,25 @@ export interface Order {
   lead_id?: string;
   plan_id?: string;
   order_no: string;
-  status: OrderStatus;
-  product_amount: number;
-  service_fee: number;
-  delivery_fee: number;
-  discount_amount: number;
-  deposit_amount: number;
-  paid_amount: number;
-  grand_total: number;
-  payment_status: PaymentStatus;
+  type?: OrderType;
+  title?: string;
+  status: OrderStatus | any;
+  product_amount?: number;
+  amount?: number;
+  currency?: string;
+  service_fee?: number;
+  delivery_fee?: number;
+  discount_amount?: number;
+  deposit_amount?: number;
+  paid_amount?: number;
+  grand_total?: number;
+  payment_status: PaymentStatus | any;
+  payment_method?: string;
   payment_provider?: string;
   payment_intent_id?: string;
   customer_name: string;
-  customer_phone: string;
-  customer_city: string;
+  customer_phone?: string;
+  customer_city?: string;
   customer_address?: string;
   service_mode?: ServiceMode;
   purchase_mode?: ServiceMode;
@@ -212,6 +225,7 @@ export interface Order {
   logistics_snapshot?: any;
   note?: string;
   created_at: string;
+  paid_at?: string;
 }
 
 export interface ServicePackage {

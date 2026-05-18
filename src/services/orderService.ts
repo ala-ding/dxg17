@@ -2,7 +2,8 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { authService } from './authService';
 import { planService } from './planService';
 import { leadService } from './leadService';
-import { Order, OrderItem } from '../types/business';
+import { membershipService } from './membershipService';
+import { Order, OrderItem, OrderType } from '../types/business';
 
 export const orderService = {
   async createOrderFromPlan(planId: string, leadInput: any) {
@@ -88,6 +89,119 @@ export const orderService = {
     orders.unshift(newOrder);
     localStorage.setItem('dxg_orders', JSON.stringify(orders));
     return newOrder;
+  },
+
+  async createCommercialOrder(params: {
+    type: OrderType;
+    title: string;
+    amount: number;
+    planId?: string;
+    membershipPlanCode?: string;
+    paymentMethod?: string;
+  }) {
+    const user = await authService.getCurrentUser();
+    const orderNo = `ORDER${Date.now()}`;
+    
+    const newOrder: Partial<Order> = {
+      order_no: orderNo,
+      type: params.type,
+      title: params.title,
+      amount: params.amount,
+      currency: 'CNY',
+      status: 'pending',
+      payment_status: 'unpaid',
+      payment_method: params.paymentMethod || 'mock',
+      user_id: user?.id || 'guest',
+      customer_name: user?.user_metadata?.name || user?.email || '访客屋主',
+      plan_id: params.planId,
+      created_at: new Date().toISOString()
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from('orders').insert(newOrder).select().single();
+      if (error) throw error;
+      return data;
+    }
+
+    const orders = JSON.parse(localStorage.getItem('dxg_orders') || '[]');
+    const finalOrder = { ...newOrder, id: `order_${Date.now()}` };
+    orders.unshift(finalOrder);
+    localStorage.setItem('dxg_orders', JSON.stringify(orders));
+    return finalOrder;
+  },
+
+  async payOrder(orderId: string) {
+    const user = await authService.getCurrentUser();
+    
+    if (isSupabaseConfigured && supabase) {
+      const { data: order, error: fetchError } = await supabase.from('orders').select('*').eq('id', orderId).single();
+      if (fetchError) throw fetchError;
+
+      const { error: updateError } = await supabase.from('orders').update({
+        status: 'paid',
+        payment_status: 'paid',
+        paid_at: new Date().toISOString()
+      }).eq('id', orderId);
+      if (updateError) throw updateError;
+
+      // Side effects
+      if (order.type === 'membership') {
+        const planCode = order.title.includes('专业') ? 'professional' : 'consulting';
+        await membershipService.activateMembership(planCode);
+      } else if (order.type === 'plan_list_unlock') {
+        // Mark plan as unlocked in separate table or JSON field
+        if (order.plan_id) {
+          const unlockType = order.title.includes('专业') ? 'professional' : 'basic';
+          await supabase.from('plans').update({
+            unlock_status: {
+              unlocked: true,
+              type: unlockType,
+              unlocked_at: new Date().toISOString(),
+              order_id: orderId
+            }
+          }).eq('id', order.plan_id);
+        }
+      }
+      return true;
+    }
+
+    const orders = JSON.parse(localStorage.getItem('dxg_orders') || '[]');
+    const order = orders.find((o: any) => o.id === orderId);
+    if (!order) throw new Error('Order not found');
+
+    order.status = 'paid';
+    order.payment_status = 'paid';
+    order.paid_at = new Date().toISOString();
+
+    localStorage.setItem('dxg_orders', JSON.stringify(orders));
+
+    // Local side effects
+    if (order.type === 'membership') {
+      const planCode = order.title.includes('专业') ? 'professional' : 'consulting';
+      localStorage.setItem('dxg_user_plan', planCode);
+    } else if (order.type === 'plan_list_unlock') {
+      if (order.plan_id) {
+        const unlocks = JSON.parse(localStorage.getItem('dxg_plan_unlocks') || '{}');
+        const unlockType = order.title.includes('专业') ? 'professional' : 'basic';
+        unlocks[order.plan_id] = {
+          unlocked: true,
+          type: unlockType,
+          unlocked_at: new Date().toISOString(),
+          order_id: orderId
+        };
+        localStorage.setItem('dxg_plan_unlocks', JSON.stringify(unlocks));
+      }
+    }
+
+    return true;
+  },
+
+  async getAllOrders() {
+    if (isSupabaseConfigured && supabase) {
+      const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      return data || [];
+    }
+    return JSON.parse(localStorage.getItem('dxg_orders') || '[]');
   },
 
   async getMyOrders() {
